@@ -112,27 +112,28 @@
 **Дата:** 2026-02-06
 
 #### Что реализовано:
-1. **Particle Pool System** (1000 max частиц)
+1. **Particle Pool System** (2000 max частиц)
    - Float32Array буферы для GPU: position, color, alpha, size
    - Typed arrays для CPU: velocity, lifetime, alive status
    - Circular ring buffer для эффективной эмиссии
 
 2. **Эмиссия частиц**
-   - `emitBurst()` — всплеск ~30 частиц при новой активной струне
-   - `emitStream()` — постоянный поток ~8 частиц/сек с accumulator
+   - `emitBurst()` — всплеск ~50 частиц при новой активной струне
+   - `emitStream()` — постоянный поток ~18 частиц/сек с accumulator (intensity ×0.8)
    - Интенсивность зависит от stringIntensities
 
 3. **Физика частиц**
    - Скорость с random разлетом (spread + upward)
    - Drag (0.98 per frame)
-   - Lifetime с квадратичным затуханием alpha
-   - Per-particle size interpolation
+   - Lifetime 1.0–2.2 сек с smoothstep затуханием alpha
+   - Per-particle size interpolation (base 0.38, smoothstep decay)
 
 4. **Shader-based Rendering**
-   - Custom vertex shader для размера (distance-based scaling)
-   - Fragment shader с soft particles (smoothstep, discard)
+   - Custom vertex shader для размера (gl_PointSize ×450, distance-based scaling)
+   - Fragment shader с soft particles (smoothstep 0.08, discard)
    - Additive blending для магических эффектов
    - Per-particle colors (цвет струны + intensity boost)
+   - Начальная alpha 0.8–1.0 для максимальной яркости
 
 5. **Оптимизация**
    - GPU буферы обновляются только при изменении

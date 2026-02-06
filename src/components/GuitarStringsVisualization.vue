@@ -69,12 +69,12 @@ const STRING_RADIUS = 0.05
 const STRING_SPACING = 1.2
 
 // Параметры системы частиц
-const MAX_PARTICLES = 1000
-const BURST_COUNT = 30
-const STREAM_RATE = 8
-const PARTICLE_LIFETIME_MIN = 0.8
-const PARTICLE_LIFETIME_MAX = 1.6
-const PARTICLE_BASE_SIZE = 0.15
+const MAX_PARTICLES = 2000
+const BURST_COUNT = 50
+const STREAM_RATE = 18
+const PARTICLE_LIFETIME_MIN = 1.0
+const PARTICLE_LIFETIME_MAX = 2.2
+const PARTICLE_BASE_SIZE = 0.38
 
 /**
  * Создаёт систему частиц с предаллоцированным пулом
@@ -115,7 +115,7 @@ const createParticleSystem = () => {
         vAlpha = aAlpha;
         vColor = aColor;
         vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-        gl_PointSize = aSize * (300.0 / -mvPosition.z);
+        gl_PointSize = aSize * (450.0 / -mvPosition.z);
         gl_Position = projectionMatrix * mvPosition;
       }
     `,
@@ -125,7 +125,7 @@ const createParticleSystem = () => {
       void main() {
         float dist = length(gl_PointCoord - vec2(0.5));
         if (dist > 0.5) discard;
-        float alpha = vAlpha * smoothstep(0.5, 0.15, dist);
+        float alpha = vAlpha * smoothstep(0.5, 0.08, dist);
         gl_FragColor = vec4(vColor, alpha);
       }
     `,
@@ -273,8 +273,8 @@ const emitParticle = (stringArrayIndex, intensity) => {
   pMaxLifetimes[i] = lifetime
 
   // Начальные alpha/size
-  pAlphas[i] = 0.6 + intensity * 0.4
-  pSizes[i] = PARTICLE_BASE_SIZE * (0.8 + intensity * 0.4)
+  pAlphas[i] = 0.8 + intensity * 0.2
+  pSizes[i] = PARTICLE_BASE_SIZE * (0.85 + intensity * 0.5)
 
   pAlive[i] = 1
 }
@@ -298,7 +298,7 @@ const emitStream = (stringArrayIndex, intensity, dt) => {
 
   while (streamAccumulators[stringArrayIndex] >= 1) {
     streamAccumulators[stringArrayIndex] -= 1
-    emitParticle(stringArrayIndex, intensity * 0.6) // stream-частицы менее интенсивны
+    emitParticle(stringArrayIndex, intensity * 0.8) // stream-частицы чуть менее интенсивны
   }
 }
 
@@ -334,9 +334,10 @@ const updateParticles = (dt) => {
     pVelocities[i3 + 1] *= 0.98
     pVelocities[i3 + 2] *= 0.98
 
-    // Квадратичное затухание alpha, линейное size
-    pAlphas[i] = lifeRatio * lifeRatio * (0.6 + (1 - lifeRatio) * 0.4)
-    pSizes[i] = PARTICLE_BASE_SIZE * lifeRatio
+    // Плавное затухание: частицы дольше остаются яркими и крупными
+    const smoothLife = lifeRatio * lifeRatio * (3 - 2 * lifeRatio) // smoothstep
+    pAlphas[i] = smoothLife * (0.8 + (1 - lifeRatio) * 0.2)
+    pSizes[i] = PARTICLE_BASE_SIZE * (0.3 + 0.7 * smoothLife)
   }
 
   // Пометить буферы для обновления GPU

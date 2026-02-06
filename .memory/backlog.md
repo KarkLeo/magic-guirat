@@ -188,19 +188,21 @@
 **Завершено:** 2026-02-06
 
 ### 🎨 VIS-6: Система частиц (US-2.3) ✅ DONE
-- [x] Particles engine (Pool-based, 1000 частиц max)
-- [x] Burst emission при ударе по струне (~30 частиц)
-- [x] Stream effects для активных струн (8 частиц/сек)
+- [x] Particles engine (Pool-based, 2000 частиц max)
+- [x] Burst emission при ударе по струне (~50 частиц)
+- [x] Stream effects для активных струн (18 частиц/сек)
 - [x] Shader-based rendering (custom vertex + fragment shaders)
 - [x] Additive blending для магических эффектов
 - [x] GPU-оптимизация (Float32Array буферы)
-- [x] Physics: velocity, drag, lifetime, alpha/size interpolation
+- [x] Physics: velocity, drag, lifetime, smoothstep alpha/size interpolation
+- [x] Увеличенный размер (base 0.38, gl_PointSize ×450) и яркость частиц
 
 **Реализация:**
 - `GuitarStringsVisualization.vue` — полная система частиц
 - Circular ring buffer для эффективной эмиссии
 - Per-particle colors (цвет строки + intensity boost)
 - Soft particles через smoothstep в shader
+- Smoothstep затухание (частицы дольше остаются яркими)
 **Завершено:** 2026-02-06
 
 ---
@@ -297,9 +299,10 @@
 - Регулируемая чувствительность (noise threshold slider 0-100%)
 - Сохранение настроек в localStorage (useSettings composable)
 - SettingsPanel компонент с фиолетово-розовой темой
-- **Particle System**: Pool-based (1000 max), burst emission, stream effects
-- GPU-оптимизированный шейдер рендеринг с additive blending
-- Per-particle physics (velocity, drag, lifetime, alpha/size curves)
+- **Particle System**: Pool-based (2000 max), burst emission (~50), stream effects (18/sec)
+- GPU-оптимизированный шейдер рендеринг с additive blending (gl_PointSize ×450)
+- Per-particle physics (velocity, drag, lifetime, smoothstep alpha/size curves)
+- Увеличенный размер (base 0.38) и яркость частиц для более выразительного эффекта
 
 ---
 
