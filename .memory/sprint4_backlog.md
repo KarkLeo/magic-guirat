@@ -1,4 +1,4 @@
-# Sprint 4+ Backlog - Magic Guitar Visual Overhaul
+,l# Sprint 4+ Backlog - Magic Guitar Visual Overhaul
 
 > **Общая цель:** Трансформация визуализатора в магический, космический опыт с богатыми анимациями
 

@@ -7,6 +7,9 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import * as THREE from 'three'
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
 import { GUITAR_STRINGS, TOTAL_STRINGS } from '@/utils/guitarMapping'
 
 const props = defineProps({
@@ -35,6 +38,7 @@ const canvasRef = ref(null)
 let scene = null
 let camera = null
 let renderer = null
+let composer = null // Post-processing composer
 let strings = [] // Массив mesh'ей струн
 let chordLines = [] // Соединительные линии между аккордными струнами
 let animationFrameId = null
@@ -180,6 +184,22 @@ const initThreeJS = () => {
   const pointLight2 = new THREE.PointLight(0xf093fb, 0.5, 100)
   pointLight2.position.set(0, -5, 10)
   scene.add(pointLight2)
+
+  // Setup post-processing
+  composer = new EffectComposer(renderer)
+
+  // Базовый render pass
+  const renderPass = new RenderPass(scene, camera)
+  composer.addPass(renderPass)
+
+  // Bloom pass для магического свечения
+  const bloomPass = new UnrealBloomPass(
+    new THREE.Vector2(CANVAS_WIDTH, CANVAS_HEIGHT),
+    1.5,  // strength - интенсивность bloom
+    0.8,  // radius - радиус размытия
+    0.15  // threshold - порог яркости для bloom
+  )
+  composer.addPass(bloomPass)
 
   // Создаём струны
   createStrings()
@@ -385,8 +405,12 @@ const animate = () => {
     })
   }
 
-  // Рендерим сцену
-  renderer.render(scene, camera)
+  // Рендерим сцену через post-processing composer
+  if (composer) {
+    composer.render()
+  } else {
+    renderer.render(scene, camera)
+  }
 
   // Следующий кадр
   animationFrameId = requestAnimationFrame(animate)
@@ -500,6 +524,11 @@ const handleResize = () => {
   camera.aspect = width / height
   camera.updateProjectionMatrix()
   renderer.setSize(width, height)
+
+  // Обновляем размер composer
+  if (composer) {
+    composer.setSize(width, height)
+  }
 }
 
 // Watch для обновления свечения
@@ -549,6 +578,11 @@ onUnmounted(() => {
     string.geometry.dispose()
     string.material.dispose()
   })
+
+  if (composer) {
+    composer.dispose()
+    composer = null
+  }
 
   if (renderer) {
     renderer.dispose()
