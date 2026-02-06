@@ -21,12 +21,16 @@
 
 ## Текущий статус
 
-**Sprint 0 - Инициализация**
+**Sprint 2 — Завершён**
 
-Базовая структура Vue 3 создана. Следующие шаги:
-1. Установка зависимостей
-2. Исследование audio библиотек
-3. POC захвата звука и визуализации
+Работает полный пайплайн:
+1. Real-time audio capture через микрофон
+2. YIN pitch detection (одиночная нота) + Chromagram (аккорды)
+3. Chord recognition (10 типов × 12 корней) + 3-frame стабилизация
+4. Auto single↔chord mode switching
+5. Three.js визуализация с multi-string support + chord connecting lines
+6. Chord name display с gradient text + alternatives
+7. Responsive layout + accessibility
 
 ## Ссылки
 

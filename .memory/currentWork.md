@@ -3,68 +3,78 @@
 ## Status
 
 **Current:** `done`
-**Task:** FIX: Sound-to-string mapping
+**Task:** Sprint 2: Аккорды и магия
 
 ---
 
 ## Task Summary
 
-**FIX: Исправление маппинга звука к гитарным струнам**
+**Sprint 2: Chromagram + Chord Recognition + Multi-string Visualization**
 
-### Проблемы (были):
-1. FFT-based pitch detection слишком грубый для басовых частот гитары (binWidth ~11.7 Hz)
-2. HPS алгоритм реализован некорректно (геометрическое среднее вместо произведения)
-3. Essentia.js отключен из-за проблем с загрузкой
-4. Confidence основан на громкости, а не на качестве определения ноты
-5. Сравнение струн по абсолютной разнице в Hz вместо полутонового расстояния
+### Что реализовано:
 
-### Решения (реализовано):
+#### 1. Утилиты нот — `src/utils/noteUtils.js`
+- `NOTE_NAMES` — 12 нот хроматической гаммы
+- `noteNameToPitchClass()` — название ноты → pitch class (0-11)
+- `pitchClassToNoteName()` — pitch class → название ноты
 
-#### 1. YIN autocorrelation pitch detection
-**Файл:** `src/composables/useFrequencyAnalyzer.js`
+#### 2. База данных аккордов — `src/data/chordDatabase.js`
+- `CHORD_TEMPLATES` — 10 типов: major, minor, dom7, maj7, min7, sus2, sus4, dim, aug, power
+- `CHORD_DISPLAY_NAMES` — суффиксы для отображения
+- `lookupChord(activePitchClasses, chromagram, maxResults)` — скоринг: 12 корней × 10 шаблонов
 
-Полная замена HPS на YIN алгоритм:
-- `yinDifferenceFunction()` — d(tau) = sum((x[j] - x[j+tau])^2)
-- `yinCumulativeMeanNormalized()` — нормализация кумулятивным средним
-- `yinAbsoluteThreshold()` — первый минимум ниже порога 0.15
-- `yinParabolicInterpolation()` — sub-sample точность
-- `getFloatTimeDomainData()` для YIN (time-domain)
-- `getByteFrequencyData()` в отдельный буфер для визуализации спектра
-- RMS проверка уровня сигнала
-- Экспорт `pitchConfidence` ref (реальный confidence из YIN, 0-1)
+#### 3. Chromagram анализатор — `src/composables/useChromaAnalyzer.js`
+- FFT `getByteFrequencyData()` → маппинг bins на 12 pitch classes
+- Нормализация + threshold-based активация (0.3)
+- Экспорт: `chromagram`, `activePitchClasses`, `startAnalysis()`, `stopAnalysis()`
 
-#### 2. Semitone distance для сравнения струн
-**Файл:** `src/utils/guitarMapping.js`
+#### 4. Распознавание аккордов — `src/composables/useChordRecognition.js`
+- Watch на `activePitchClasses` → `lookupChord()` → стабилизация (3 фрейма)
+- Маппинг pitch classes → гитарные струны
+- Экспорт: `currentChord`, `chordCandidates`, `isChordDetected`, `detectedStrings`
 
-- `getStringByFrequency()`: `12 * Math.log2(f1/f2)` вместо `Math.abs(f1 - f2)`
-- `findClosestString()`: semitone distance + порог > 12 (октава) вместо ratio > 2
+#### 5. AudioAnalyzerView.vue — модифицирован
+- Подключены `useChromaAnalyzer` + `useChordRecognition`
+- `detectionMode` computed: 'chord' если ≥2 pitch classes + аккорд найден
+- `activeStringIndices` (Array) вместо `activeStringIndex` (Number)
+- `stringIntensities` (Object) из chromagram
+- Добавлен `<ChordNameDisplay>`
 
-#### 3. Confidence-based wiring
-**Файл:** `src/components/AudioAnalyzerView.vue`
+#### 6. GuitarStringsVisualization.vue — модифицирован
+- Props: `activeStringIndices` (Array), `stringIntensities` (Object), `detectionMode` (String)
+- Set-based проверка активных струн, per-string intensity
+- Соединительные линии (THREE.Line) между аккордными струнами в chord mode
+- Cleanup линий при смене аккорда / unmount
 
-- `pitchConfidence` из `frequencyAnalyzer.pitchConfidence` (YIN) вместо audioLevel
-- `activeStringIndex` фильтрация: confidence < 0.3 = не маппим на струну
-- Убран `isEssentiaLoaded` ref
+#### 7. ChordNameDisplay.vue — создан
+- Gradient text (корень крупнее, суффикс мельче)
+- Confidence bar
+- Альтернативные аккорды
+- CSS transitions при смене аккорда
+- Фиолетово-розовая палитра, backdrop blur
+
+### Архитектурные решения:
+- **Отдельный composable** для chromagram (не расширяем useFrequencyAnalyzer) — разные домены (frequency vs time)
+- **YIN сохраняется** для single-note (лучшая точность)
+- **Автоматическое переключение** single↔chord через `detectionMode`
+- **Стабилизация 3 фрейма** (~50ms) предотвращает мерцание
 
 ---
 
 ## Metadata
 
-- **Task:** FIX: Sound-to-string mapping (Sprint 1)
+- **Task:** Sprint 2: Аккорды и магия
 - **Status:** `done`
 - **Completed:** 2026-02-06
-- **Sprint Progress:** Sprint 1 MVP — 100% ЗАВЕРШЕН
+- **Sprint Progress:** Sprint 2 — 100% ЗАВЕРШЕН
 
 ---
 
 ## Next Steps
 
-Sprint 2: Аккорды и магия
-- AUDIO-4: Полифония
-- AUDIO-5: База данных аккордов
-- AUDIO-6: Распознавание аккордов
-- VIS-3: Визуализация аккордов
-- VIS-4: Названия аккордов
+Sprint 3: Частицы и полировка
+- VIS-6: Система частиц (эмиссия при ударе, trail эффекты)
+- SETTINGS-1: UI настроек (выбор микрофона, чувствительность)
 
 ---
 

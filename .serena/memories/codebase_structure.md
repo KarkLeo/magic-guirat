@@ -96,6 +96,36 @@ magic-guitar/
 └── docs/                     # Документация (в будущем)
 ```
 
+## Актуальная структура src/
+
+```
+src/
+├── main.js                    # Точка входа
+├── App.vue                    # Корневой компонент
+├── assets/                    # Ресурсы (css, images)
+│   ├── main.css
+│   ├── base.css
+│   └── logo.svg
+├── components/                # Vue компоненты
+│   ├── AudioAnalyzerView.vue          # Главный оркестратор (single + chord modes)
+│   ├── AudioCaptureButton.vue         # Кнопка захвата микрофона
+│   ├── GuitarStringsVisualization.vue # Three.js multi-string visualization
+│   ├── FrequencySpectrumVisualizer.vue# Canvas spectrum bars
+│   ├── ChordNameDisplay.vue           # Название аккорда (gradient text)
+│   └── icons/
+├── composables/               # Composition API hooks
+│   ├── useAudioCapture.js     # Захват звука, AudioContext
+│   ├── useFrequencyAnalyzer.js# YIN pitch detection + spectrum
+│   ├── useChromaAnalyzer.js   # Chromagram из FFT → 12 pitch classes
+│   ├── useChordRecognition.js # Chord matching + стабилизация
+│   └── usePitchDetector.js    # Legacy Essentia.js (disabled)
+├── utils/                     # Утилиты
+│   ├── guitarMapping.js       # Frequency→string (semitone distance)
+│   └── noteUtils.js           # NOTE_NAMES, pitch class conversions
+└── data/                      # Данные
+    └── chordDatabase.js       # Chord templates + lookupChord()
+```
+
 ## Ключевые файлы
 
 ### Конфигурация
