@@ -187,10 +187,21 @@
 - Фиолетово-розовая палитра, backdrop blur
 **Завершено:** 2026-02-06
 
-### 🎨 VIS-6: Система частиц (US-2.3)
-- [ ] Particles engine
-- [ ] Эмиссия при ударе по струне
-- [ ] Trail эффекты
+### 🎨 VIS-6: Система частиц (US-2.3) ✅ DONE
+- [x] Particles engine (Pool-based, 1000 частиц max)
+- [x] Burst emission при ударе по струне (~30 частиц)
+- [x] Stream effects для активных струн (8 частиц/сек)
+- [x] Shader-based rendering (custom vertex + fragment shaders)
+- [x] Additive blending для магических эффектов
+- [x] GPU-оптимизация (Float32Array буферы)
+- [x] Physics: velocity, drag, lifetime, alpha/size interpolation
+
+**Реализация:**
+- `GuitarStringsVisualization.vue` — полная система частиц
+- Circular ring buffer для эффективной эмиссии
+- Per-particle colors (цвет строки + intensity boost)
+- Soft particles через smoothstep в shader
+**Завершено:** 2026-02-06
 
 ---
 
@@ -256,16 +267,19 @@
 - Responsive layout (desktop/tablet/mobile)
 - Full accessibility support
 
-### Sprint 3: 🚀 В ПРОЦЕССЕ
+### Sprint 3: ✅ ЗАВЕРШЕН
 Частицы и полировка:
 - ✅ SETTINGS-1: UI настроек (выбор микрофона, noise threshold, localStorage)
-- ⏳ VIS-6: Система частиц (в очереди)
+- ✅ VIS-6: Система частиц (burst + stream, shader-based, GPU-optimized)
 
-**Новые возможности:**
+**Что реализовано:**
 - Динамический выбор микрофона из доступных девайсов
 - Регулируемая чувствительность (noise threshold slider 0-100%)
-- Сохранение настроек в localStorage
+- Сохранение настроек в localStorage (useSettings composable)
 - SettingsPanel компонент с фиолетово-розовой темой
+- **Particle System**: Pool-based (1000 max), burst emission, stream effects
+- GPU-оптимизированный шейдер рендеринг с additive blending
+- Per-particle physics (velocity, drag, lifetime, alpha/size curves)
 
 ---
 

@@ -2,9 +2,9 @@
 
 ## Status
 
-**Current:** `in_progress`
+**Current:** `done`
 **Task:** Sprint 3: Частицы и полировка
-**Phase:** SETTINGS-1 завершена, готовы к коммиту
+**Phase:** ✅ ПОЛНОСТЬЮ ГОТОВО К КОММИТУ
 
 ---
 
@@ -65,18 +65,19 @@
 ## Metadata
 
 - **Task:** Sprint 3: Частицы и полировка
-- **Current Phase:** SETTINGS-1 ✅ (готово к коммиту)
-- **Status:** `in_progress`
-- **Updated:** 2026-02-06
+- **Status:** `done`
+- **Updated:** 2026-02-06 (последняя актуализация: VIS-6 обнаружена как готовая)
 - **Sprint Progress:**
-  - Sprint 2: 100% ЗАВЕРШЕН
-  - Sprint 3: 20% (SETTINGS-1 готова, VIS-6 в очереди)
+  - Sprint 2: 100% ЗАВЕРШЕН ✅
+  - Sprint 3: 100% ЗАВЕРШЕН ✅
+    - ✅ SETTINGS-1: UI настроек (микрофон, чувствительность, localStorage)
+    - ✅ VIS-6: Система частиц (burst + stream, GPU-optimized)
 
 ---
 
-## Sprint 3 Progress
+## Sprint 3 Progress - ✅ ЗАВЕРШЕНА
 
-### ✅ SETTINGS-1: UI настроек (ГОТОВО К КОММИТУ)
+### ✅ SETTINGS-1: UI настроек
 **Статус:** Реализовано, ожидает коммита
 **Дата:** 2026-02-06
 
@@ -102,20 +103,57 @@
    - Передача noiseThreshold в анализаторы (useFrequencyAnalyzer, useChromaAnalyzer)
    - Динамический выбор микрофона и настройка чувствительности
 
+### ✅ VIS-6: Система частиц (ГОТОВО К КОММИТУ)
+**Статус:** Полностью реализовано в GuitarStringsVisualization.vue
+**Дата:** 2026-02-06
+
+#### Что реализовано:
+1. **Particle Pool System** (1000 max частиц)
+   - Float32Array буферы для GPU: position, color, alpha, size
+   - Typed arrays для CPU: velocity, lifetime, alive status
+   - Circular ring buffer для эффективной эмиссии
+
+2. **Эмиссия частиц**
+   - `emitBurst()` — всплеск ~30 частиц при новой активной струне
+   - `emitStream()` — постоянный поток ~8 частиц/сек с accumulator
+   - Интенсивность зависит от stringIntensities
+
+3. **Физика частиц**
+   - Скорость с random разлетом (spread + upward)
+   - Drag (0.98 per frame)
+   - Lifetime с квадратичным затуханием alpha
+   - Per-particle size interpolation
+
+4. **Shader-based Rendering**
+   - Custom vertex shader для размера (distance-based scaling)
+   - Fragment shader с soft particles (smoothstep, discard)
+   - Additive blending для магических эффектов
+   - Per-particle colors (цвет струны + intensity boost)
+
+5. **Оптимизация**
+   - GPU буферы обновляются только при изменении
+   - Только живые частицы обновляются в CPU
+   - Frustum culling disabled (нужна глобальная visibility)
+
 #### Файлы для коммита:
 - ✅ src/components/SettingsPanel.vue (новый)
 - ✅ src/composables/useSettings.js (новый)
 - ✅ src/components/AudioAnalyzerView.vue (модифицирован)
 - ✅ src/composables/useAudioCapture.js (модифицирован)
 - ✅ src/composables/useFrequencyAnalyzer.js (модифицирован)
+- ✅ src/components/GuitarStringsVisualization.vue (уже содержит VIS-6)
 - ✅ src/App.vue (модифицирован)
 - ✅ src/assets/main.css (модифицирован)
-- ✅ И другие связанные файлы
+- ✅ .memory/backlog.md (обновлен)
+- ✅ .memory/currentWork.md (этот файл)
 
 ## Next Steps
 
-Sprint 3 (продолжение):
-- [ ] VIS-6: Система частиц (эмиссия при ударе, trail эффекты)
+Sprint 4 (Icebox):
+- [ ] VIS-7: Визуализация табулатур
+- [ ] HIST-1: История игры
+- [ ] REC-1: Запись и воспроизведение
+- [ ] EDU-1: Режим обучения
 
 ---
 
