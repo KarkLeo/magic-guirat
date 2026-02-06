@@ -120,9 +120,9 @@ export const ColorUtils = {
       throw new Error(`Invalid hex color: ${hex}`)
     }
     return {
-      r: parseInt(result[1], 16) / 255,
-      g: parseInt(result[2], 16) / 255,
-      b: parseInt(result[3], 16) / 255,
+      r: parseInt(result[1]!, 16) / 255,
+      g: parseInt(result[2]!, 16) / 255,
+      b: parseInt(result[3]!, 16) / 255,
     }
   },
 
