@@ -10,12 +10,22 @@
       @toggle-capture="toggleCapture"
     />
 
+    <!-- Отображение аккорда -->
+    <transition name="fade">
+      <ChordNameDisplay
+        v-if="isCapturing && isChordDetected"
+        :chord="currentChord"
+        :candidates="chordCandidates"
+      />
+    </transition>
+
     <!-- Визуализация струн гитары -->
     <transition name="fade">
       <GuitarStringsVisualization
         v-if="isCapturing"
-        :active-string-index="activeStringIndex"
-        :intensity="stringIntensity"
+        :active-string-indices="activeStringIndices"
+        :string-intensities="stringIntensities"
+        :detection-mode="detectionMode"
         :is-active="isCapturing"
       />
     </transition>
@@ -39,10 +49,14 @@
 import { computed, watch, onUnmounted } from 'vue'
 import { useAudioCapture } from '@/composables/useAudioCapture'
 import { useFrequencyAnalyzer } from '@/composables/useFrequencyAnalyzer'
-import { getActiveString } from '@/utils/guitarMapping'
+import { useChromaAnalyzer } from '@/composables/useChromaAnalyzer'
+import { useChordRecognition } from '@/composables/useChordRecognition'
+import { getActiveString, GUITAR_STRINGS } from '@/utils/guitarMapping'
+import { noteNameToPitchClass } from '@/utils/noteUtils'
 import AudioCaptureButton from './AudioCaptureButton.vue'
 import GuitarStringsVisualization from './GuitarStringsVisualization.vue'
 import FrequencySpectrumVisualizer from './FrequencySpectrumVisualizer.vue'
+import ChordNameDisplay from './ChordNameDisplay.vue'
 
 // Используем composable для работы с аудио
 const {
@@ -59,11 +73,23 @@ const {
 // Получаем AnalyserNode для визуализатора
 const analyserNode = computed(() => getAnalyserNode())
 
-// Используем frequency analyzer для pitch detection (FFT)
+// Используем frequency analyzer для pitch detection (YIN)
 const frequencyAnalyzer = computed(() => {
   const node = analyserNode.value
   return node ? useFrequencyAnalyzer(node) : null
 })
+
+// Используем chroma analyzer для аккордов
+const chromaAnalyzer = computed(() => {
+  const node = analyserNode.value
+  return node ? useChromaAnalyzer(node) : null
+})
+
+// Chord recognition
+const activePitchClassesRef = computed(() => chromaAnalyzer.value?.activePitchClasses.value || new Set())
+const chromagramRef = computed(() => chromaAnalyzer.value?.chromagram.value || null)
+const { currentChord, chordCandidates, isChordDetected, detectedStrings } =
+  useChordRecognition(activePitchClassesRef, chromagramRef)
 
 // Деструктуризация FFT данных для pitch detection
 const detectedPitch = computed(() => frequencyAnalyzer.value?.dominantFrequency.value || 0)
@@ -74,11 +100,19 @@ const detectedNote = computed(() => {
   return frequencyAnalyzer.value.frequencyToNote(detectedPitch.value)
 })
 
-// Confidence из YIN алгоритма (реальное качество определения pitch)
+// Confidence из YIN алгоритма
 const pitchConfidence = computed(() => frequencyAnalyzer.value?.pitchConfidence.value || 0)
 
-// Определение активной струны (с фильтрацией по confidence)
-const activeStringIndex = computed(() => {
+// Режим определения: 'chord' или 'single'
+const detectionMode = computed(() => {
+  if (isChordDetected.value && detectedStrings.value.length >= 2) {
+    return 'chord'
+  }
+  return 'single'
+})
+
+// Определение активной струны для single mode (как раньше)
+const singleActiveStringIndex = computed(() => {
   const note = detectedNote.value
   const pitch = detectedPitch.value
   const confidence = pitchConfidence.value
@@ -93,55 +127,70 @@ const activeStringIndex = computed(() => {
     frequency: pitch,
   })
 
-  console.log('Detected:', `${note.note}${note.octave} (${pitch} Hz)`,
-              'confidence:', confidence.toFixed(2),
-              '-> String:', activeString ? `${activeString.string.index} (${activeString.string.fullNote})` : 'none',
-              'Method:', activeString?.method)
-
   return activeString ? activeString.string.index : null
 })
 
-// Интенсивность свечения струны
-const stringIntensity = computed(() => {
-  // Комбинируем pitchConfidence и audioLevel для лучшей отзывчивости
-  const confidence = pitchConfidence.value
-  const level = audioLevel.value || 0
+// Активные индексы струн (Array) — для chord и single mode
+const activeStringIndices = computed(() => {
+  if (detectionMode.value === 'chord') {
+    return detectedStrings.value
+  }
+  // Single mode
+  const idx = singleActiveStringIndex.value
+  return idx !== null ? [idx] : []
+})
 
-  // Если есть pitch с хорошим confidence, используем его
-  if (confidence >= 0.5) {
-    return confidence
+// Интенсивности струн из chromagram
+const stringIntensities = computed(() => {
+  const intensities = {}
+  const chromagram = chromagramRef.value
+
+  if (detectionMode.value === 'chord' && chromagram) {
+    for (const gs of GUITAR_STRINGS) {
+      const pc = noteNameToPitchClass(gs.note)
+      intensities[gs.index] = pc >= 0 ? (chromagram[pc] || 0) : 0
+    }
+  } else {
+    // Single mode — интенсивность на основе pitchConfidence и audioLevel
+    const idx = singleActiveStringIndex.value
+    const confidence = pitchConfidence.value
+    const level = audioLevel.value || 0
+
+    for (const gs of GUITAR_STRINGS) {
+      if (gs.index === idx) {
+        intensities[gs.index] = confidence >= 0.5 ? confidence : Math.max(confidence, level * 0.8)
+      } else {
+        intensities[gs.index] = 0
+      }
+    }
   }
 
-  // Если pitch есть но confidence низкий, комбинируем с audioLevel
-  if (detectedPitch.value > 0 && confidence > 0) {
-    return Math.max(confidence, level * 0.8) // Используем большее значение
-  }
-
-  // Fallback на audioLevel
-  return level
+  return intensities
 })
 
 // Переключение состояния захвата
 const toggleCapture = async () => {
   if (isCapturing.value) {
     stopCapture()
-    // Остановка frequency analysis
     if (frequencyAnalyzer.value) {
       frequencyAnalyzer.value.stopAnalysis()
+    }
+    if (chromaAnalyzer.value) {
+      chromaAnalyzer.value.stopAnalysis()
     }
   } else {
     await startCapture()
   }
 }
 
-// Запускаем frequency analysis когда захват активен
+// Запускаем frequency analysis и chroma analysis когда захват активен
 watch(
   () => isCapturing.value,
   async (capturing) => {
-    if (capturing && frequencyAnalyzer.value) {
-      // Небольшая задержка для инициализации analyserNode
+    if (capturing) {
       setTimeout(() => {
         frequencyAnalyzer.value?.startAnalysis()
+        chromaAnalyzer.value?.startAnalysis()
       }, 100)
     }
   },
@@ -149,13 +198,14 @@ watch(
 
 // Очистка при размонтировании компонента
 onUnmounted(() => {
-  // Останавливаем захват звука
   if (isCapturing.value) {
     stopCapture()
   }
-  // Останавливаем анализ частот
   if (frequencyAnalyzer.value?.isAnalyzing.value) {
     frequencyAnalyzer.value.stopAnalysis()
+  }
+  if (chromaAnalyzer.value?.isAnalyzing.value) {
+    chromaAnalyzer.value.stopAnalysis()
   }
 })
 </script>

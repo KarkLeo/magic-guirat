@@ -10,13 +10,17 @@ import * as THREE from 'three'
 import { GUITAR_STRINGS, TOTAL_STRINGS } from '@/utils/guitarMapping'
 
 const props = defineProps({
-  activeStringIndex: {
-    type: Number,
-    default: null, // null = нет активной струны
+  activeStringIndices: {
+    type: Array,
+    default: () => [],
   },
-  intensity: {
-    type: Number,
-    default: 0, // 0-1
+  stringIntensities: {
+    type: Object,
+    default: () => ({}),
+  },
+  detectionMode: {
+    type: String,
+    default: 'single', // 'single' | 'chord'
   },
   isActive: {
     type: Boolean,
@@ -32,6 +36,7 @@ let scene = null
 let camera = null
 let renderer = null
 let strings = [] // Массив mesh'ей струн
+let chordLines = [] // Соединительные линии между аккордными струнами
 let animationFrameId = null
 
 // Размеры
@@ -90,8 +95,6 @@ const initThreeJS = () => {
 
   // Запускаем рендеринг
   animate()
-
-  console.log('🎸 Three.js визуализация инициализирована')
 }
 
 /**
@@ -119,7 +122,6 @@ const createStrings = () => {
     const mesh = new THREE.Mesh(geometry, material)
 
     // Позиционирование: от верха (-2.5) к низу (2.5)
-    // 6 струн с интервалом STRING_SPACING
     const yPosition =
       (TOTAL_STRINGS - 1) * (STRING_SPACING / 2) - index * STRING_SPACING
 
@@ -129,6 +131,7 @@ const createStrings = () => {
     // Сохраняем референс на струну
     mesh.userData = {
       stringIndex: stringInfo.index,
+      arrayIndex: index,
       baseColor: new THREE.Color(stringInfo.color),
       targetIntensity: 0.2, // Целевая интенсивность
       currentIntensity: 0.2, // Текущая интенсивность
@@ -165,28 +168,86 @@ const animate = () => {
 }
 
 /**
- * Обновляет свечение струн в зависимости от активной струны
+ * Удаляет все соединительные линии
+ */
+const clearChordLines = () => {
+  chordLines.forEach((line) => {
+    scene.remove(line)
+    line.geometry.dispose()
+    line.material.dispose()
+  })
+  chordLines = []
+}
+
+/**
+ * Создаёт соединительные линии между активными струнами в chord mode
+ */
+const updateChordLines = () => {
+  if (!scene) return
+
+  clearChordLines()
+
+  if (props.detectionMode !== 'chord' || props.activeStringIndices.length < 2) {
+    return
+  }
+
+  // Находим mesh'и активных струн
+  const activeStrings = strings.filter((s) =>
+    props.activeStringIndices.includes(s.userData.stringIndex),
+  )
+
+  if (activeStrings.length < 2) return
+
+  // Создаём линии между соседними активными струнами
+  const material = new THREE.LineBasicMaterial({
+    color: 0xc084fc,
+    transparent: true,
+    opacity: 0.4,
+  })
+
+  for (let i = 0; i < activeStrings.length - 1; i++) {
+    const from = activeStrings[i].position
+    const to = activeStrings[i + 1].position
+
+    const geometry = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, from.y, 0.5),
+      new THREE.Vector3(0, to.y, 0.5),
+    ])
+
+    const line = new THREE.Line(geometry, material.clone())
+    scene.add(line)
+    chordLines.push(line)
+  }
+}
+
+/**
+ * Обновляет свечение струн
  */
 const updateStrings = () => {
   if (!strings.length) return
 
-  const activeIndex = props.activeStringIndex
-  const intensity = Math.max(0, Math.min(1, props.intensity)) // Clamp 0-1
+  const activeSet = new Set(props.activeStringIndices)
+  const intensities = props.stringIntensities
 
   strings.forEach((string) => {
     const userData = string.userData
+    const idx = userData.stringIndex
 
-    if (userData.stringIndex === activeIndex && props.isActive) {
-      // Активная струна - яркое свечение
+    if (activeSet.has(idx) && props.isActive) {
+      // Активная струна — яркое свечение
+      const intensity = Math.max(0, Math.min(1, intensities[idx] || 0.7))
       userData.targetIntensity = 0.5 + intensity * 1.5 // 0.5 - 2.0
-    } else if (activeIndex === null && props.isActive && intensity > 0.1) {
-      // Если струна не определена, но есть звук - все струны слабо светятся
-      userData.targetIntensity = 0.2 + intensity * 0.3 // 0.2 - 0.5
+    } else if (activeSet.size === 0 && props.isActive) {
+      // Нет определённых струн но есть звук — слабое свечение
+      userData.targetIntensity = 0.25
     } else {
-      // Неактивные струны - базовое свечение
+      // Неактивные струны — базовое свечение
       userData.targetIntensity = 0.2
     }
   })
+
+  // Обновляем chord lines
+  updateChordLines()
 }
 
 /**
@@ -208,10 +269,11 @@ const handleResize = () => {
 
 // Watch для обновления свечения
 watch(
-  () => [props.activeStringIndex, props.intensity, props.isActive],
+  () => [props.activeStringIndices, props.stringIntensities, props.detectionMode, props.isActive],
   () => {
     updateStrings()
   },
+  { deep: true },
 )
 
 // Lifecycle hooks
@@ -229,6 +291,8 @@ onUnmounted(() => {
 
   window.removeEventListener('resize', handleResize)
 
+  clearChordLines()
+
   // Dispose geometry и materials
   strings.forEach((string) => {
     string.geometry.dispose()
@@ -238,8 +302,6 @@ onUnmounted(() => {
   if (renderer) {
     renderer.dispose()
   }
-
-  console.log('🎸 Three.js визуализация очищена')
 })
 </script>
 
