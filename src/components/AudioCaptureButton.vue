@@ -9,6 +9,8 @@
         error: hasError,
       }"
       :disabled="isRequestingPermission"
+      :aria-label="buttonText"
+      :aria-pressed="isCapturing"
       @click="toggleCapture"
     >
       <span class="button-icon">
@@ -46,9 +48,9 @@
     </button>
 
     <!-- Индикатор уровня сигнала -->
-    <div v-if="isCapturing" class="audio-level-container">
+    <div v-if="isCapturing" class="audio-level-container" role="status" aria-live="polite">
       <div class="audio-level-label">Уровень сигнала</div>
-      <div class="audio-level-meter">
+      <div class="audio-level-meter" role="progressbar" :aria-valuenow="Math.round(audioLevel * 100)" aria-valuemin="0" aria-valuemax="100">
         <div
           class="audio-level-bar"
           :style="{ width: `${audioLevel * 100}%` }"
@@ -58,7 +60,7 @@
     </div>
 
     <!-- Сообщение об ошибке -->
-    <div v-if="hasError" class="error-message">
+    <div v-if="hasError" class="error-message" role="alert" aria-live="assertive">
       <svg
         width="20"
         height="20"
@@ -66,6 +68,7 @@
         fill="none"
         stroke="currentColor"
         stroke-width="2"
+        aria-hidden="true"
       >
         <circle cx="12" cy="12" r="10"></circle>
         <line x1="12" y1="8" x2="12" y2="12"></line>
@@ -196,6 +199,11 @@ const buttonText = computed(() => {
   transform: translateY(0);
 }
 
+.capture-button:focus-visible {
+  outline: 3px solid #a855f7;
+  outline-offset: 3px;
+}
+
 .capture-button:disabled {
   opacity: 0.7;
   cursor: not-allowed;
@@ -307,5 +315,95 @@ const buttonText = computed(() => {
 
 .error-message svg {
   flex-shrink: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .audio-capture {
+    padding: 1rem;
+    max-width: 100%;
+  }
+
+  .capture-button {
+    padding: 0.875rem 1.75rem;
+    font-size: 0.95rem;
+    gap: 0.625rem;
+  }
+
+  .button-icon svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .audio-level-label,
+  .audio-level-value,
+  .error-message {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .audio-capture {
+    padding: 0.75rem;
+    gap: 0.875rem;
+  }
+
+  .capture-button {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.875rem;
+    gap: 0.5rem;
+    border-radius: 10px;
+  }
+
+  .button-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .spinner {
+    width: 18px;
+    height: 18px;
+    border-width: 2.5px;
+  }
+
+  .audio-level-label,
+  .audio-level-value {
+    font-size: 0.75rem;
+  }
+
+  .audio-level-meter {
+    height: 6px;
+  }
+
+  .error-message {
+    padding: 0.875rem;
+    font-size: 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .error-message svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .capture-button {
+    transition: none;
+  }
+
+  .capture-button:hover:not(:disabled) {
+    transform: none;
+  }
+
+  .capture-button.active {
+    animation: none;
+  }
+
+  .spinner {
+    animation: none;
+    border-top-color: rgba(255, 255, 255, 0.5);
+  }
 }
 </style>

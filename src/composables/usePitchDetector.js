@@ -1,5 +1,5 @@
 import { ref, onUnmounted } from 'vue'
-import { Essentia, EssentiaWASM } from 'essentia.js'
+import * as EssentiaModule from 'essentia.js'
 
 /**
  * Composable для определения питча с использованием Essentia.js (PitchYinFFT)
@@ -23,7 +23,7 @@ export function usePitchDetector(analyserNode) {
   const FRAME_SIZE = 2048
   const MIN_FREQUENCY = 82 // E2 (самая низкая струна гитары)
   const MAX_FREQUENCY = 1200 // E6 (высокие ноты)
-  const CONFIDENCE_THRESHOLD = 0.8 // Минимальная уверенность для отображения
+  const CONFIDENCE_THRESHOLD = 0.5 // Минимальная уверенность для отображения (снижено для лучшей отзывчивости)
 
   /**
    * Инициализирует Essentia.js WASM
@@ -33,10 +33,12 @@ export function usePitchDetector(analyserNode) {
       console.log('🔧 Загрузка Essentia.js WASM...')
 
       // Инициализируем Essentia с WASM backend
-      essentia = new Essentia(EssentiaWASM)
+      essentia = new EssentiaModule.Essentia(EssentiaModule.EssentiaWASM)
 
-      // Ждём загрузки WASM
-      await EssentiaWASM.ready
+      // Ждём загрузки WASM модуля
+      if (EssentiaModule.EssentiaWASM && EssentiaModule.EssentiaWASM.ready) {
+        await EssentiaModule.EssentiaWASM.ready
+      }
 
       isEssentiaLoaded.value = true
       console.log('✅ Essentia.js WASM загружен')
@@ -124,17 +126,18 @@ export function usePitchDetector(analyserNode) {
       const pitch = result.pitch
       const confidence = result.pitchConfidence
 
-      // Фильтруем по confidence и диапазону
-      if (
-        confidence >= CONFIDENCE_THRESHOLD &&
-        pitch >= MIN_FREQUENCY &&
-        pitch <= MAX_FREQUENCY
-      ) {
+      // Если pitch в диапазоне, показываем его (даже с низким confidence)
+      if (pitch >= MIN_FREQUENCY && pitch <= MAX_FREQUENCY && pitch > 0) {
         detectedPitch.value = Math.round(pitch)
         pitchConfidence.value = confidence
         detectedNote.value = frequencyToNote(pitch)
+
+        // Логируем только если confidence выше минимального
+        if (confidence >= CONFIDENCE_THRESHOLD) {
+          console.log('🎵 High confidence pitch:', pitch, 'Hz', detectedNote.value, confidence)
+        }
       } else {
-        // Если confidence низкий, обнуляем
+        // Обнуляем только если pitch вне диапазона
         detectedPitch.value = 0
         pitchConfidence.value = 0
         detectedNote.value = { note: '', octave: 0, cents: 0 }

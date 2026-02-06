@@ -46,8 +46,8 @@ export function useAudioCapture() {
 
       // Создаём AnalyserNode для анализа частот
       analyserNode = audioContext.createAnalyser()
-      analyserNode.fftSize = 2048 // Размер FFT (чем больше, тем лучше частотное разрешение)
-      analyserNode.smoothingTimeConstant = 0.8 // Сглаживание
+      analyserNode.fftSize = 4096 // Баланс между точностью и производительностью
+      analyserNode.smoothingTimeConstant = 0.7 // Среднее сглаживание
 
       // Подключаем микрофон к анализатору
       microphoneSource.connect(analyserNode)

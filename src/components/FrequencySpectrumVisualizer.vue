@@ -3,11 +3,11 @@
     <div class="spectrum-header">
       <h3 class="spectrum-title">
         Частотный спектр
-        <span v-if="isEssentiaLoaded" class="essentia-badge">✨ Essentia.js</span>
-        <span v-else class="essentia-badge loading">⏳ Загрузка...</span>
+        <span v-if="isEssentiaLoaded" class="essentia-badge" aria-label="Essentia.js загружен">✨ Essentia.js</span>
+        <span v-else class="essentia-badge loading" aria-label="Загрузка Essentia.js">⏳ Загрузка...</span>
       </h3>
       <!-- Essentia Pitch (приоритет если доступен) -->
-      <div v-if="detectedPitch > 0 && pitchConfidence > 0" class="dominant-info">
+      <div v-if="detectedPitch > 0 && pitchConfidence > 0" class="dominant-info" role="status" aria-live="polite">
         <span class="freq-value">{{ detectedPitch }} Hz</span>
         <span v-if="detectedNote.note" class="note-value">
           {{ detectedNote.note }}{{ detectedNote.octave }}
@@ -31,7 +31,7 @@
     </div>
 
     <div class="spectrum-container">
-      <canvas ref="canvasRef" class="spectrum-canvas"></canvas>
+      <canvas ref="canvasRef" class="spectrum-canvas" role="img" aria-label="Визуализация частотного спектра"></canvas>
     </div>
 
     <div class="spectrum-footer">
@@ -351,6 +351,119 @@ onUnmounted(() => {
 
   .note-value {
     font-size: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .spectrum-visualizer {
+    padding: 0.875rem;
+    gap: 0.75rem;
+  }
+
+  .spectrum-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .spectrum-title {
+    font-size: 0.95rem;
+  }
+
+  .essentia-badge {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.4rem;
+    margin-left: 0.375rem;
+  }
+
+  .dominant-info {
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .freq-value {
+    font-size: 1.125rem;
+  }
+
+  .note-value {
+    font-size: 0.95rem;
+    gap: 0.375rem;
+  }
+
+  .cents {
+    font-size: 0.75rem;
+  }
+
+  .confidence-badge,
+  .method-label {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.4rem;
+  }
+
+  .spectrum-footer {
+    font-size: 0.7rem;
+  }
+
+  .freq-label {
+    font-size: 0.65rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .spectrum-visualizer {
+    padding: 0.75rem;
+    gap: 0.625rem;
+  }
+
+  .spectrum-header {
+    gap: 0.5rem;
+  }
+
+  .spectrum-title {
+    font-size: 0.875rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .essentia-badge {
+    font-size: 0.6rem;
+    padding: 0.15rem 0.35rem;
+    margin-left: 0.25rem;
+  }
+
+  .freq-value {
+    font-size: 1rem;
+  }
+
+  .note-value {
+    font-size: 0.875rem;
+  }
+
+  .cents {
+    font-size: 0.7rem;
+  }
+
+  .idle-text {
+    font-size: 0.875rem;
+  }
+
+  .confidence-badge,
+  .method-label {
+    font-size: 0.6rem;
+    padding: 0.15rem 0.35rem;
+  }
+
+  .spectrum-footer {
+    gap: 0.25rem;
+  }
+
+  .freq-label {
+    font-size: 0.6rem;
+  }
+
+  .freq-label.center {
+    display: none; /* Hide on very small screens */
   }
 }
 

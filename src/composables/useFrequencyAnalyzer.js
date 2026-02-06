@@ -1,18 +1,18 @@
-import { ref, onUnmounted } from 'vue'
+import { ref } from 'vue'
 
 /**
- * Composable для частотного анализа аудио с использованием FFT
+ * Composable для частотного анализа аудио с использованием YIN autocorrelation
  * Оптимизирован для диапазона гитары (82-1200 Hz)
+ *
+ * ВАЖНО: Не использует onUnmounted, т.к. может вызываться внутри computed.
+ * Очистка должна выполняться вручную через stopAnalysis()
  */
 export function useFrequencyAnalyzer(analyserNode) {
   // Реактивные состояния
   const frequencyData = ref(null)
   const dominantFrequency = ref(0)
+  const pitchConfidence = ref(0)
   const isAnalyzing = ref(false)
-
-  // Буфер для сглаживания данных
-  let frequencyBuffer = []
-  const BUFFER_SIZE = 3 // Количество кадров для усреднения
 
   // Animation frame ID
   let animationFrameId = null
@@ -21,22 +21,35 @@ export function useFrequencyAnalyzer(analyserNode) {
   const GUITAR_MIN_FREQ = 82 // E2 (самая низкая струна)
   const GUITAR_MAX_FREQ = 1200 // E6 (высокие ноты)
 
+  // YIN параметры
+  const YIN_THRESHOLD = 0.15
+  const YIN_MIN_FREQ = GUITAR_MIN_FREQ
+  const YIN_MAX_FREQ = GUITAR_MAX_FREQ
+
+  // Буферы (переиспользуемые для производительности)
+  let timeDomainBuffer = null
+  let spectrumBuffer = null
+
   /**
    * Запускает частотный анализ
    */
   const startAnalysis = () => {
     if (!analyserNode) {
-      console.warn('⚠️ AnalyserNode не предоставлен')
+      console.warn('AnalyserNode не предоставлен')
       return
     }
 
     isAnalyzing.value = true
-    frequencyBuffer = []
+
+    // Инициализируем буферы
+    const fftSize = analyserNode.fftSize
+    timeDomainBuffer = new Float32Array(fftSize)
+    spectrumBuffer = new Uint8Array(analyserNode.frequencyBinCount)
 
     // Запускаем цикл анализа
     analyzeFrequencies()
 
-    console.log('📊 Частотный анализ запущен')
+    console.log('Частотный анализ запущен (YIN, fftSize=' + fftSize + ')')
   }
 
   /**
@@ -51,9 +64,9 @@ export function useFrequencyAnalyzer(analyserNode) {
     isAnalyzing.value = false
     frequencyData.value = null
     dominantFrequency.value = 0
-    frequencyBuffer = []
-
-    console.log('📊 Частотный анализ остановлен')
+    pitchConfidence.value = 0
+    timeDomainBuffer = null
+    spectrumBuffer = null
   }
 
   /**
@@ -64,91 +77,197 @@ export function useFrequencyAnalyzer(analyserNode) {
       return
     }
 
-    // Получаем частотные данные из AnalyserNode
-    const bufferLength = analyserNode.frequencyBinCount
-    const dataArray = new Uint8Array(bufferLength)
-    analyserNode.getByteFrequencyData(dataArray)
+    // Получаем time-domain данные для YIN pitch detection
+    analyserNode.getFloatTimeDomainData(timeDomainBuffer)
 
-    // Добавляем в буфер для сглаживания
-    frequencyBuffer.push(dataArray)
-    if (frequencyBuffer.length > BUFFER_SIZE) {
-      frequencyBuffer.shift()
+    // Получаем frequency-domain данные для визуализации спектра
+    analyserNode.getByteFrequencyData(spectrumBuffer)
+    frequencyData.value = new Uint8Array(spectrumBuffer)
+
+    // Проверяем уровень сигнала (RMS)
+    const rms = calculateRMS(timeDomainBuffer)
+    const NOISE_THRESHOLD = 0.01
+
+    if (rms < NOISE_THRESHOLD) {
+      dominantFrequency.value = 0
+      pitchConfidence.value = 0
+    } else {
+      // YIN pitch detection на time-domain данных
+      const sampleRate = analyserNode.context.sampleRate
+      const result = yinDetectPitch(timeDomainBuffer, sampleRate)
+
+      dominantFrequency.value = result.frequency
+      pitchConfidence.value = result.confidence
     }
-
-    // Усредняем данные из буфера
-    const smoothedData = smoothFrequencyData(frequencyBuffer)
-
-    // Обновляем реактивные данные
-    frequencyData.value = smoothedData
-
-    // Вычисляем доминирующую частоту
-    dominantFrequency.value = calculateDominantFrequency(smoothedData, analyserNode)
 
     // Запрашиваем следующий кадр
     animationFrameId = requestAnimationFrame(analyzeFrequencies)
   }
 
   /**
-   * Сглаживает частотные данные путём усреднения буфера
+   * Вычисляет RMS (Root Mean Square) для определения уровня сигнала
    */
-  const smoothFrequencyData = (buffer) => {
-    if (buffer.length === 0) {
-      return new Uint8Array(0)
+  const calculateRMS = (buffer) => {
+    let sum = 0
+    for (let i = 0; i < buffer.length; i++) {
+      sum += buffer[i] * buffer[i]
     }
-
-    const length = buffer[0].length
-    const smoothed = new Uint8Array(length)
-
-    for (let i = 0; i < length; i++) {
-      let sum = 0
-      for (let j = 0; j < buffer.length; j++) {
-        sum += buffer[j][i]
-      }
-      smoothed[i] = Math.round(sum / buffer.length)
-    }
-
-    return smoothed
+    return Math.sqrt(sum / buffer.length)
   }
 
   /**
-   * Вычисляет доминирующую частоту в спектре
-   * Фокусируется на гитарном диапазоне (82-1200 Hz)
+   * YIN pitch detection algorithm
+   * @param {Float32Array} buffer - Time-domain audio samples
+   * @param {number} sampleRate - Sample rate in Hz
+   * @returns {{ frequency: number, confidence: number }}
    */
-  const calculateDominantFrequency = (data, analyser) => {
-    if (!data || data.length === 0) {
-      return 0
+  const yinDetectPitch = (buffer, sampleRate) => {
+    const tauMin = Math.floor(sampleRate / YIN_MAX_FREQ) // ~40 for 48kHz
+    const tauMax = Math.min(
+      Math.ceil(sampleRate / YIN_MIN_FREQ), // ~585 for 48kHz
+      Math.floor(buffer.length / 2),
+    )
+
+    if (tauMax <= tauMin) {
+      return { frequency: 0, confidence: 0 }
     }
 
-    // Получаем параметры для конвертации bin -> частота
-    const sampleRate = analyser.context.sampleRate
-    const binCount = analyser.frequencyBinCount
-    const binWidth = sampleRate / 2 / binCount // Hz на bin
+    // Step 1: Difference function
+    const diff = yinDifferenceFunction(buffer, tauMin, tauMax)
 
-    // Вычисляем индексы bin'ов для гитарного диапазона
-    const minBin = Math.floor(GUITAR_MIN_FREQ / binWidth)
-    const maxBinRange = Math.ceil(GUITAR_MAX_FREQ / binWidth)
+    // Step 2: Cumulative mean normalized difference
+    const cmndf = yinCumulativeMeanNormalized(diff, tauMin)
 
-    // Ищем максимум в гитарном диапазоне
-    let maxAmplitude = 0
-    let maxBinIndex = 0
+    // Step 3: Absolute threshold — find best tau
+    const tauResult = yinAbsoluteThreshold(cmndf, tauMin, tauMax)
 
-    for (let i = minBin; i < Math.min(maxBinRange, data.length); i++) {
-      if (data[i] > maxAmplitude) {
-        maxAmplitude = data[i]
-        maxBinIndex = i
+    if (tauResult.tau === -1) {
+      return { frequency: 0, confidence: 0 }
+    }
+
+    // Step 4: Parabolic interpolation for sub-sample accuracy
+    const refinedTau = yinParabolicInterpolation(cmndf, tauResult.tau, tauMin, tauMax)
+
+    const frequency = Math.round(sampleRate / refinedTau)
+    const confidence = 1 - tauResult.value
+
+    // Отбрасываем результаты за пределами гитарного диапазона
+    if (frequency < GUITAR_MIN_FREQ || frequency > GUITAR_MAX_FREQ) {
+      return { frequency: 0, confidence: 0 }
+    }
+
+    return { frequency, confidence: Math.max(0, Math.min(1, confidence)) }
+  }
+
+  /**
+   * YIN Step 1: Difference function
+   * d(tau) = sum of (x[j] - x[j+tau])^2 for j = 0..W-1
+   */
+  const yinDifferenceFunction = (buffer, tauMin, tauMax) => {
+    const diff = new Float32Array(tauMax + 1)
+    const halfLen = Math.floor(buffer.length / 2)
+
+    for (let tau = tauMin; tau <= tauMax; tau++) {
+      let sum = 0
+      for (let j = 0; j < halfLen; j++) {
+        const delta = buffer[j] - buffer[j + tau]
+        sum += delta * delta
+      }
+      diff[tau] = sum
+    }
+
+    return diff
+  }
+
+  /**
+   * YIN Step 2: Cumulative mean normalized difference function
+   * d'(tau) = d(tau) / ((1/tau) * sum(d(j), j=1..tau)) for tau > 0
+   * d'(0) = 1
+   */
+  const yinCumulativeMeanNormalized = (diff, tauMin) => {
+    const cmndf = new Float32Array(diff.length)
+    let runningSum = 0
+
+    // Для tau < tauMin устанавливаем значения = 1 (они не используются)
+    for (let tau = 0; tau < tauMin; tau++) {
+      cmndf[tau] = 1
+    }
+
+    // Подсчитываем running sum до tauMin
+    for (let tau = 1; tau < tauMin; tau++) {
+      runningSum += diff[tau]
+    }
+
+    for (let tau = tauMin; tau < diff.length; tau++) {
+      runningSum += diff[tau]
+      if (runningSum === 0) {
+        cmndf[tau] = 1
+      } else {
+        cmndf[tau] = diff[tau] * tau / runningSum
       }
     }
 
-    // Если амплитуда слишком низкая, считаем что звука нет
-    const NOISE_THRESHOLD = 30 // Порог шума (0-255)
-    if (maxAmplitude < NOISE_THRESHOLD) {
-      return 0
+    return cmndf
+  }
+
+  /**
+   * YIN Step 3: Absolute threshold
+   * Находит первый tau где cmndf(tau) < threshold и это локальный минимум
+   */
+  const yinAbsoluteThreshold = (cmndf, tauMin, tauMax) => {
+    let bestTau = -1
+    let bestValue = 1
+
+    // Ищем первую долину ниже порога
+    for (let tau = tauMin; tau < tauMax; tau++) {
+      if (cmndf[tau] < YIN_THRESHOLD) {
+        // Нашли точку ниже порога, ищем минимум этой долины
+        while (tau + 1 < tauMax && cmndf[tau + 1] < cmndf[tau]) {
+          tau++
+        }
+        bestTau = tau
+        bestValue = cmndf[tau]
+        break
+      }
     }
 
-    // Конвертируем bin в частоту
-    const frequency = maxBinIndex * binWidth
+    // Если не нашли ниже порога, ищем глобальный минимум
+    if (bestTau === -1) {
+      for (let tau = tauMin; tau < tauMax; tau++) {
+        if (cmndf[tau] < bestValue) {
+          bestValue = cmndf[tau]
+          bestTau = tau
+        }
+      }
+      // Если минимум слишком большой, считаем что pitch не определён
+      if (bestValue > 0.5) {
+        return { tau: -1, value: 1 }
+      }
+    }
 
-    return Math.round(frequency)
+    return { tau: bestTau, value: bestValue }
+  }
+
+  /**
+   * YIN Step 4: Parabolic interpolation
+   * Уточняет tau между дискретными точками для sub-sample accuracy
+   */
+  const yinParabolicInterpolation = (cmndf, tau, tauMin, tauMax) => {
+    if (tau <= tauMin || tau >= tauMax - 1) {
+      return tau
+    }
+
+    const s0 = cmndf[tau - 1]
+    const s1 = cmndf[tau]
+    const s2 = cmndf[tau + 1]
+
+    const adjustment = (s0 - s2) / (2 * (s0 - 2 * s1 + s2))
+
+    if (Math.abs(adjustment) > 1) {
+      return tau
+    }
+
+    return tau + adjustment
   }
 
   /**
@@ -250,17 +369,11 @@ export function useFrequencyAnalyzer(analyserNode) {
     }
   }
 
-  // Очистка при размонтировании
-  onUnmounted(() => {
-    if (isAnalyzing.value) {
-      stopAnalysis()
-    }
-  })
-
   return {
     // Состояния
     frequencyData,
     dominantFrequency,
+    pitchConfidence,
     isAnalyzing,
 
     // Методы

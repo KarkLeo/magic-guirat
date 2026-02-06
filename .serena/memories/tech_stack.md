@@ -14,10 +14,11 @@
 ## Установленные библиотеки
 
 ### Аудио:
-- **Essentia.js v0.1.3** ✅ - полифоническое pitch detection, chord recognition, melody extraction (WebAssembly)
-- **Web Audio API** (native) - захват микрофона, FFT анализ, визуализация спектра
+- **Web Audio API** (native) - захват микрофона, AnalyserNode, визуализация спектра
+- **YIN autocorrelation** - pitch detection на time-domain данных (реализован в useFrequencyAnalyzer.js)
+- **Essentia.js v0.1.3** - установлен но отключён (проблемы с загрузкой WASM), может использоваться в Sprint 2
 
-**Решение:** Используем Essentia.js сразу для полного функционала (размер 2-3 MB не критичен)
+**Текущий подход:** YIN на time-domain данных (getFloatTimeDomainData) + FFT спектр для визуализации (getByteFrequencyData)
 
 ### Визуализация:
 - **Canvas 2D** / **Three.js** / **PixiJS** (выбор в процессе)
