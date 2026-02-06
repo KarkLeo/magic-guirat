@@ -3,8 +3,8 @@
 ## Status
 
 **Current:** `done`
-**Task:** Sprint 3: Частицы и полировка
-**Phase:** ✅ ПОЛНОСТЬЮ ГОТОВО К КОММИТУ
+**Task:** Post-Sprint 3: Bug Fixes
+**Phase:** ✅ ВСЕ БАГИ ИСПРАВЛЕНЫ И ЗАКОММИЧЕНЫ
 
 ---
 
@@ -64,14 +64,18 @@
 
 ## Metadata
 
-- **Task:** Sprint 3: Частицы и полировка
+- **Task:** Sprint 3 + Bug Fixes
 - **Status:** `done`
-- **Updated:** 2026-02-06 (последняя актуализация: VIS-6 обнаружена как готовая)
+- **Updated:** 2026-02-06 21:15 (bug fixes completed)
 - **Sprint Progress:**
   - Sprint 2: 100% ЗАВЕРШЕН ✅
   - Sprint 3: 100% ЗАВЕРШЕН ✅
     - ✅ SETTINGS-1: UI настроек (микрофон, чувствительность, localStorage)
     - ✅ VIS-6: Система частиц (burst + stream, GPU-optimized)
+  - Post-Sprint 3: 100% BUG FIXES ✅
+    - ✅ BUG-1: Removed eternal "Loading..." badge
+    - ✅ BUG-2: Fixed layout shift (dergavoe positioning)
+    - ✅ BUG-3: Increased chord display visibility (1-2 sec)
 
 ---
 
@@ -146,6 +150,38 @@
 - ✅ src/assets/main.css (модифицирован)
 - ✅ .memory/backlog.md (обновлен)
 - ✅ .memory/currentWork.md (этот файл)
+
+---
+
+## Post-Sprint 3: Bug Fixes ✅ ЗАВЕРШЕНЫ
+
+### 🐛 BUG-1: Вечный "Loading..." badge [FIXED]
+**Описание:** Возле частотного спектра постоянно отображался "⏳ Загрузка..."
+**Причина:** `isEssentiaLoaded="false"` (Essentia.js отключен), v-else всегда активен
+**Решение:** Удален v-else span с loading badge
+**Файл:** `src/components/FrequencySpectrumVisualizer.vue` (строка 7)
+**Коммит:** ac916cb
+
+### 🐛 BUG-2: Дергавое позиционирование [FIXED]
+**Описание:** При смене компонентов UI скакал и выглядел странно
+**Причина:** `.dominant-info { min-height: 130px }` вызывал layout shift
+**Решение:** Изменено на `min-height: auto`
+**Файл:** `src/components/FrequencySpectrumVisualizer.vue` (строка 270)
+**Коммит:** ac916cb
+
+### 🐛 BUG-3: Быстро исчезающие блоки нот [FIXED]
+**Описание:** Аккорды исчезали слишком быстро, не было времени прочитать
+**Причина:** Transition duration слишком короткие (0.15s-0.4s)
+**Решение:**
+- ChordNameDisplay `.chord-swap-leave-active`: 0.15s → 1.0s
+- AudioAnalyzerView `.fade-leave-active`: 0.4s → 1.2s
+- Теперь 1-2 сек на чтение информации
+**Файлы:**
+- `src/components/ChordNameDisplay.vue` (строка 134)
+- `src/components/AudioAnalyzerView.vue` (строка 244)
+**Коммит:** ac916cb
+
+---
 
 ## Next Steps
 
