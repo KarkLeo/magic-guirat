@@ -11,6 +11,9 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
 import { GUITAR_STRINGS, TOTAL_STRINGS } from '@/utils/guitarMapping'
+// Импортируем шейдеры как raw строки
+import stringVertexShader from '@/shaders/stringVertex.glsl?raw'
+import stringFragmentShader from '@/shaders/stringFragment.glsl?raw'
 
 const props = defineProps({
   activeStringIndices: {
@@ -213,7 +216,7 @@ const initThreeJS = () => {
 }
 
 /**
- * Создаёт 6 струн гитары
+ * Создаёт 6 струн гитары с кастомными шейдерами
  */
 const createStrings = () => {
   const geometry = new THREE.CylinderGeometry(
@@ -225,13 +228,28 @@ const createStrings = () => {
 
   // Создаём струны сверху вниз (6-я -> 1-я)
   GUITAR_STRINGS.forEach((stringInfo, index) => {
-    // Материал с emissive свечением
-    const material = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(stringInfo.color),
-      emissive: new THREE.Color(stringInfo.color),
-      emissiveIntensity: 0.2, // Базовое слабое свечение
-      metalness: 0.8,
-      roughness: 0.2,
+    const baseColor = new THREE.Color(stringInfo.color)
+
+    // Создаём градиент: немного светлее в начале, базовый цвет в конце
+    const colorStart = baseColor.clone().multiplyScalar(1.2)
+    const colorEnd = baseColor.clone()
+
+    // Shader Material с кастомными шейдерами
+    const material = new THREE.ShaderMaterial({
+      uniforms: {
+        // Параметры волны
+        uTime: { value: 0.0 },
+        uAmplitude: { value: 0.0 }, // Начинаем с 0, обновится при активации
+        uFrequency: { value: 1.0 + index * 0.15 }, // Разная частота для каждой струны
+        uDamping: { value: 1.5 },
+        uAttackTime: { value: 0.0 },
+        // Параметры цвета
+        uColorStart: { value: colorStart },
+        uColorEnd: { value: colorEnd },
+        uGlowIntensity: { value: 0.2 }, // Базовое слабое свечение
+      },
+      vertexShader: stringVertexShader,
+      fragmentShader: stringFragmentShader,
     })
 
     const mesh = new THREE.Mesh(geometry, material)
@@ -247,9 +265,11 @@ const createStrings = () => {
     mesh.userData = {
       stringIndex: stringInfo.index,
       arrayIndex: index,
-      baseColor: new THREE.Color(stringInfo.color),
-      targetIntensity: 0.2, // Целевая интенсивность
-      currentIntensity: 0.2, // Текущая интенсивность
+      baseColor: baseColor,
+      targetIntensity: 0.2, // Целевая интенсивность свечения
+      currentIntensity: 0.2, // Текущая интенсивность свечения
+      targetAmplitude: 0.0,  // Целевая амплитуда колебаний
+      currentAmplitude: 0.0, // Текущая амплитуда колебаний
     }
 
     scene.add(mesh)
@@ -378,16 +398,23 @@ const animate = () => {
   const dt = Math.min((now - lastFrameTime) / 1000, 0.1) // cap at 100ms
   lastFrameTime = now
 
-  // Плавная анимация интенсивности свечения
+  // Обновление шейдеров струн
   strings.forEach((string) => {
     const userData = string.userData
-    const diff = userData.targetIntensity - userData.currentIntensity
+    const uniforms = string.material.uniforms
 
-    // Плавное приближение к целевой интенсивности
-    userData.currentIntensity += diff * 0.15
+    // Обновляем время для волновой анимации
+    uniforms.uTime.value = now
 
-    // Обновляем материал
-    string.material.emissiveIntensity = userData.currentIntensity
+    // Плавная анимация интенсивности свечения
+    const intensityDiff = userData.targetIntensity - userData.currentIntensity
+    userData.currentIntensity += intensityDiff * 0.15
+    uniforms.uGlowIntensity.value = userData.currentIntensity
+
+    // Плавная анимация амплитуды колебаний
+    const amplitudeDiff = userData.targetAmplitude - userData.currentAmplitude
+    userData.currentAmplitude += amplitudeDiff * 0.2
+    uniforms.uAmplitude.value = userData.currentAmplitude
   })
 
   // Обновление частиц
@@ -470,33 +497,39 @@ const updateChordLines = () => {
 }
 
 /**
- * Обновляет свечение струн
+ * Обновляет свечение и колебания струн
  */
 const updateStrings = () => {
   if (!strings.length) return
 
   const activeSet = new Set(props.activeStringIndices)
   const intensities = props.stringIntensities
+  const currentTime = performance.now()
 
   strings.forEach((string) => {
     const userData = string.userData
+    const uniforms = string.material.uniforms
     const idx = userData.stringIndex
 
     if (activeSet.has(idx) && props.isActive) {
-      // Активная струна — яркое свечение
+      // Активная струна — яркое свечение и колебания
       const intensity = Math.max(0, Math.min(1, intensities[idx] || 0.7))
       userData.targetIntensity = 0.5 + intensity * 1.5 // 0.5 - 2.0
+      userData.targetAmplitude = 0.1 + intensity * 0.4 // 0.1 - 0.5 (амплитуда волны)
 
-      // Burst при появлении новой активной струны
+      // Attack: обновляем время начала колебания при появлении новой активной струны
       if (!prevActiveSet.has(idx)) {
+        uniforms.uAttackTime.value = currentTime
         emitBurst(userData.arrayIndex, intensity)
       }
     } else if (activeSet.size === 0 && props.isActive) {
-      // Нет определённых струн но есть звук — слабое свечение
+      // Нет определённых струн но есть звук — слабое свечение, нет колебаний
       userData.targetIntensity = 0.25
+      userData.targetAmplitude = 0.0
     } else {
-      // Неактивные струны — базовое свечение
+      // Неактивные струны — базовое свечение, нет колебаний
       userData.targetIntensity = 0.2
+      userData.targetAmplitude = 0.0
       // Сбросить stream accumulator при деактивации
       streamAccumulators[userData.arrayIndex] = 0
     }
