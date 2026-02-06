@@ -7,7 +7,7 @@ import { ref } from 'vue'
  * ВАЖНО: Не использует onUnmounted, т.к. может вызываться внутри computed.
  * Очистка должна выполняться вручную через stopAnalysis()
  */
-export function useFrequencyAnalyzer(analyserNode) {
+export function useFrequencyAnalyzer(analyserNode, options = {}) {
   // Реактивные состояния
   const frequencyData = ref(null)
   const dominantFrequency = ref(0)
@@ -25,6 +25,9 @@ export function useFrequencyAnalyzer(analyserNode) {
   const YIN_THRESHOLD = 0.15
   const YIN_MIN_FREQ = GUITAR_MIN_FREQ
   const YIN_MAX_FREQ = GUITAR_MAX_FREQ
+
+  // Noise threshold (настраиваемый через options)
+  const noiseThreshold = options.noiseThreshold || 0.01
 
   // Буферы (переиспользуемые для производительности)
   let timeDomainBuffer = null
@@ -86,9 +89,8 @@ export function useFrequencyAnalyzer(analyserNode) {
 
     // Проверяем уровень сигнала (RMS)
     const rms = calculateRMS(timeDomainBuffer)
-    const NOISE_THRESHOLD = 0.01
 
-    if (rms < NOISE_THRESHOLD) {
+    if (rms < noiseThreshold) {
       dominantFrequency.value = 0
       pitchConfidence.value = 0
     } else {

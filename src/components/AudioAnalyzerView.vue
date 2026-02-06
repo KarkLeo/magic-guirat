@@ -51,12 +51,16 @@ import { useAudioCapture } from '@/composables/useAudioCapture'
 import { useFrequencyAnalyzer } from '@/composables/useFrequencyAnalyzer'
 import { useChromaAnalyzer } from '@/composables/useChromaAnalyzer'
 import { useChordRecognition } from '@/composables/useChordRecognition'
+import { useSettings } from '@/composables/useSettings'
 import { getActiveString, GUITAR_STRINGS } from '@/utils/guitarMapping'
 import { noteNameToPitchClass } from '@/utils/noteUtils'
 import AudioCaptureButton from './AudioCaptureButton.vue'
 import GuitarStringsVisualization from './GuitarStringsVisualization.vue'
 import FrequencySpectrumVisualizer from './FrequencySpectrumVisualizer.vue'
 import ChordNameDisplay from './ChordNameDisplay.vue'
+
+// Настройки
+const { selectedDeviceId, noiseThreshold } = useSettings()
 
 // Используем composable для работы с аудио
 const {
@@ -67,16 +71,19 @@ const {
   hasError,
   startCapture,
   stopCapture,
+  switchDevice,
   getAnalyserNode,
 } = useAudioCapture()
 
 // Получаем AnalyserNode для визуализатора
-const analyserNode = computed(() => getAnalyserNode())
+// Зависимость от isCapturing нужна для реактивности: getAnalyserNode() возвращает
+// не-реактивную переменную, поэтому без isCapturing computed не обновится.
+const analyserNode = computed(() => isCapturing.value ? getAnalyserNode() : null)
 
 // Используем frequency analyzer для pitch detection (YIN)
 const frequencyAnalyzer = computed(() => {
   const node = analyserNode.value
-  return node ? useFrequencyAnalyzer(node) : null
+  return node ? useFrequencyAnalyzer(node, { noiseThreshold: noiseThreshold.value }) : null
 })
 
 // Используем chroma analyzer для аккордов
@@ -179,9 +186,18 @@ const toggleCapture = async () => {
       chromaAnalyzer.value.stopAnalysis()
     }
   } else {
-    await startCapture()
+    await startCapture(selectedDeviceId.value)
   }
 }
+
+// Переключение микрофона при смене устройства в настройках
+watch(selectedDeviceId, async (newDeviceId) => {
+  if (isCapturing.value) {
+    if (frequencyAnalyzer.value) frequencyAnalyzer.value.stopAnalysis()
+    if (chromaAnalyzer.value) chromaAnalyzer.value.stopAnalysis()
+    await switchDevice(newDeviceId)
+  }
+})
 
 // Запускаем frequency analysis и chroma analysis когда захват активен
 watch(

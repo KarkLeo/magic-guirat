@@ -1,13 +1,28 @@
 <script setup>
+import { ref } from 'vue'
 import AudioAnalyzerView from './components/AudioAnalyzerView.vue'
+import SettingsPanel from './components/SettingsPanel.vue'
+
+const isSettingsOpen = ref(false)
 </script>
 
 <template>
   <div class="app-container">
     <header class="app-header" role="banner">
-      <h1 class="app-title">🎸 Magic Guitar</h1>
+      <div class="app-header-top">
+        <div class="app-header-spacer"></div>
+        <h1 class="app-title">🎸 Magic Guitar</h1>
+        <button class="settings-btn" @click="isSettingsOpen = true" aria-label="Настройки">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
       <p class="app-subtitle">Захват и визуализация игры на гитаре</p>
     </header>
+
+    <SettingsPanel :is-open="isSettingsOpen" @close="isSettingsOpen = false" />
 
     <main class="app-main" role="main">
       <AudioAnalyzerView />
@@ -93,6 +108,39 @@ body {
   animation: fade-in-down 0.8s ease-out;
 }
 
+.app-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+}
+
+.app-header-spacer {
+  width: 40px;
+}
+
+.settings-btn {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(168, 181, 255, 0.15);
+  border-radius: 10px;
+  color: rgba(168, 181, 255, 0.6);
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.settings-btn:hover {
+  color: #e0d6f6;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(168, 181, 255, 0.3);
+}
+
 @keyframes fade-in-down {
   from {
     opacity: 0;
@@ -111,9 +159,10 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin-bottom: 0.75rem;
+  margin: 0;
   filter: drop-shadow(0 0 40px rgba(102, 126, 234, 0.6));
   letter-spacing: -0.02em;
+  flex: 1;
 }
 
 .app-subtitle {

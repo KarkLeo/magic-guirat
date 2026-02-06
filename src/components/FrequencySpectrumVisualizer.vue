@@ -267,6 +267,7 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: flex-end;
   gap: 0.25rem;
+  min-height: 130px;
 }
 
 .dominant-info.idle {

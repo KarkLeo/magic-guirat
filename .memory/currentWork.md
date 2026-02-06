@@ -2,8 +2,9 @@
 
 ## Status
 
-**Current:** `done`
-**Task:** Sprint 2: Аккорды и магия
+**Current:** `in_progress`
+**Task:** Sprint 3: Частицы и полировка
+**Phase:** SETTINGS-1 завершена, готовы к коммиту
 
 ---
 
@@ -63,18 +64,58 @@
 
 ## Metadata
 
-- **Task:** Sprint 2: Аккорды и магия
-- **Status:** `done`
-- **Completed:** 2026-02-06
-- **Sprint Progress:** Sprint 2 — 100% ЗАВЕРШЕН
+- **Task:** Sprint 3: Частицы и полировка
+- **Current Phase:** SETTINGS-1 ✅ (готово к коммиту)
+- **Status:** `in_progress`
+- **Updated:** 2026-02-06
+- **Sprint Progress:**
+  - Sprint 2: 100% ЗАВЕРШЕН
+  - Sprint 3: 20% (SETTINGS-1 готова, VIS-6 в очереди)
 
 ---
 
+## Sprint 3 Progress
+
+### ✅ SETTINGS-1: UI настроек (ГОТОВО К КОММИТУ)
+**Статус:** Реализовано, ожидает коммита
+**Дата:** 2026-02-06
+
+#### Что реализовано:
+1. **src/composables/useSettings.js** — singleton settings store
+   - Загрузка настроек из localStorage
+   - Выбор микрофона (список доступных девайсов)
+   - Слайдер чувствительности (noise threshold: 0.0-1.0)
+   - Автоматическое сохранение в localStorage
+   - Reactive computed properties для Vue компонентов
+
+2. **src/components/SettingsPanel.vue** — модальное окно настроек
+   - Кнопка открытия панели (Settings icon)
+   - Dropdown для выбора микрофона (перечисление доступных девайсов)
+   - Слайдер для регулировки noise threshold (0-100%)
+   - Индикатор текущих значений
+   - Backdrop blur эффект, фиолетово-розовая палитра
+   - Интеграция с AudioAnalyzerView
+
+3. **Интеграция в AudioAnalyzerView.vue**
+   - Подключена useSettings composable
+   - Передача selectedMicrophone в useAudioCapture
+   - Передача noiseThreshold в анализаторы (useFrequencyAnalyzer, useChromaAnalyzer)
+   - Динамический выбор микрофона и настройка чувствительности
+
+#### Файлы для коммита:
+- ✅ src/components/SettingsPanel.vue (новый)
+- ✅ src/composables/useSettings.js (новый)
+- ✅ src/components/AudioAnalyzerView.vue (модифицирован)
+- ✅ src/composables/useAudioCapture.js (модифицирован)
+- ✅ src/composables/useFrequencyAnalyzer.js (модифицирован)
+- ✅ src/App.vue (модифицирован)
+- ✅ src/assets/main.css (модифицирован)
+- ✅ И другие связанные файлы
+
 ## Next Steps
 
-Sprint 3: Частицы и полировка
-- VIS-6: Система частиц (эмиссия при ударе, trail эффекты)
-- SETTINGS-1: UI настроек (выбор микрофона, чувствительность)
+Sprint 3 (продолжение):
+- [ ] VIS-6: Система частиц (эмиссия при ударе, trail эффекты)
 
 ---
 

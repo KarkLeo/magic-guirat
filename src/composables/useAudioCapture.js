@@ -24,18 +24,24 @@ export function useAudioCapture() {
   /**
    * Запускает захват звука с микрофона
    */
-  const startCapture = async () => {
+  const startCapture = async (deviceId = '') => {
     try {
       error.value = null
       isRequestingPermission.value = true
 
+      // Формируем audio constraints
+      const audioConstraints = {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+      }
+      if (deviceId) {
+        audioConstraints.deviceId = { exact: deviceId }
+      }
+
       // Запрос доступа к микрофону
       mediaStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: false, // Отключаем подавление эха для чистого звука гитары
-          noiseSuppression: false, // Отключаем шумоподавление
-          autoGainControl: false, // Отключаем автоматическую регулировку усиления
-        },
+        audio: audioConstraints,
       })
 
       // Создаём AudioContext
@@ -154,6 +160,16 @@ export function useAudioCapture() {
   }
 
   /**
+   * Переключает на другой микрофон (stop + start)
+   */
+  const switchDevice = async (newDeviceId) => {
+    if (isCapturing.value) {
+      stopCapture()
+      await startCapture(newDeviceId)
+    }
+  }
+
+  /**
    * Получает доступ к AnalyserNode для дальнейшего анализа
    */
   const getAnalyserNode = () => {
@@ -190,6 +206,7 @@ export function useAudioCapture() {
     // Методы
     startCapture,
     stopCapture,
+    switchDevice,
     getAnalyserNode,
     getAudioContext,
   }
