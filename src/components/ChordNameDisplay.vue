@@ -127,11 +127,11 @@ const confidencePercent = computed(() => {
 
 /* Transition для смены аккорда */
 .chord-swap-enter-active {
-  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .chord-swap-leave-active {
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.6, 1);
+  transition: all 1s cubic-bezier(0.4, 0, 0.6, 1);
 }
 
 .chord-swap-enter-from {

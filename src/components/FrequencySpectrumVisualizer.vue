@@ -4,7 +4,6 @@
       <h3 class="spectrum-title">
         Частотный спектр
         <span v-if="isEssentiaLoaded" class="essentia-badge" aria-label="Essentia.js загружен">✨ Essentia.js</span>
-        <span v-else class="essentia-badge loading" aria-label="Загрузка Essentia.js">⏳ Загрузка...</span>
       </h3>
       <!-- Essentia Pitch (приоритет если доступен) -->
       <div v-if="detectedPitch > 0 && pitchConfidence > 0" class="dominant-info" role="status" aria-live="polite">
@@ -267,7 +266,7 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: flex-end;
   gap: 0.25rem;
-  min-height: 130px;
+  min-height: auto;
 }
 
 .dominant-info.idle {
