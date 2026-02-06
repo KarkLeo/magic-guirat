@@ -11,6 +11,7 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
 import { GUITAR_STRINGS, TOTAL_STRINGS } from '@/utils/guitarMapping'
+import { ColorUtils } from '@/constants'
 // Импортируем шейдеры как raw строки
 import stringVertexShader from '@/shaders/stringVertex.glsl?raw'
 import stringFragmentShader from '@/shaders/stringFragment.glsl?raw'
@@ -228,7 +229,9 @@ const createStrings = () => {
 
   // Создаём струны сверху вниз (6-я -> 1-я)
   GUITAR_STRINGS.forEach((stringInfo, index) => {
-    const baseColor = new THREE.Color(stringInfo.color)
+    // Используем цвета из констант вместо stringInfo.color
+    const colorHex = ColorUtils.getStringColor(index)
+    const baseColor = new THREE.Color(colorHex)
 
     // Создаём градиент: немного светлее в начале, базовый цвет в конце
     const colorStart = baseColor.clone().multiplyScalar(1.2)
