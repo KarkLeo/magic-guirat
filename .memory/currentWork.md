@@ -3,80 +3,133 @@
 ## Status
 
 **Current:** `done`
-**Task:** INIT-3 - Выбор библиотеки визуализации ✅
+**Task:** AUDIO-1 - Захват звука с микрофона ✅
 
 ---
 
 ## Task Summary
 
-**INIT-3: Исследование и выбор библиотеки визуализации**
+**AUDIO-1: Захват звука с микрофона (US-1.1)**
 
-✅ Создал POC компонент с Canvas 2D (базовые струны + свечение)
-✅ Создал POC компонент с Three.js (3D струны + эффекты)
-✅ Создал страницу сравнения с анализом
-✅ Протестировал производительность обоих вариантов
-✅ Проанализировал критерии выбора
-✅ Сделал финальный выбор: **Three.js**
+✅ Создал composable `useAudioCapture.js` для работы с Web Audio API
+✅ Реализовал запрос доступа к микрофону
+✅ Настроил AudioContext и MediaStream
+✅ Добавил обработку ошибок и permissions
+✅ Реализовал мониторинг уровня сигнала (RMS)
+✅ Создал UI компонент `AudioCaptureButton.vue`
+✅ Добавил визуальный индикатор уровня сигнала
+✅ Интегрировал в App.vue с магической темой
 
-**Установленные зависимости:**
-- three@^0.172.0
+**Созданные файлы:**
+- `src/composables/useAudioCapture.js` - Composable для работы с аудио
+- `src/components/AudioCaptureButton.vue` - UI компонент управления
+- Обновлен `src/App.vue` - Темная магическая тема
 
-**Созданные компоненты:**
-- `src/components/CanvasPOC.vue` - Canvas 2D вариант
-- `src/components/ThreePOC.vue` - Three.js вариант  
-- `src/components/VisualizationComparison.vue` - Страница сравнения
+**Функционал:**
+- Захват звука с микрофона через getUserMedia
+- Настройка для гитары (echo cancellation OFF, noise suppression OFF)
+- AnalyserNode с FFT size 2048 для частотного анализа
+- Реактивный мониторинг уровня сигнала в реальном времени
+- Обработка ошибок: NotAllowed, NotFound, NotReadable
+- Автоматическая очистка ресурсов при размонтировании
 
-**Документация:**
-- `.serena/memories/visualization_library_research.md`
+**Визуализация:**
+- Кнопка запуска/остановки с иконками
+- Индикатор уровня сигнала с градиентом
+- Анимация пульсации при активном захвате
+- Фиолетово-синяя магическая палитра
+- Темный градиентный фон
 
 ---
 
-## Final Decision
+## Testing Checklist
 
-**Выбрано: Three.js**
+Проверить в браузере (http://localhost:5174/):
+- [ ] Кнопка "Начать захват звука" работает
+- [ ] Браузер запрашивает permission для микрофона
+- [ ] После разрешения захват стартует
+- [ ] Индикатор уровня сигнала отображается
+- [ ] Индикатор реагирует на звук (говорите/играйте)
+- [ ] Кнопка "Остановить захват" работает
+- [ ] Обработка отказа в доступе корректна
+- [ ] Обработка отсутствия микрофона корректна
+- [ ] Визуализация соответствует магической теме
 
-**Обоснование:**
-1. Магическая визуализация требует богатых эффектов (bloom, glow, particles)
-2. Three.js предоставляет готовые решения для всех визуальных эффектов
-3. Отличная производительность через WebGL (60 FPS)
-4. Масштабируемость и возможность добавления новых эффектов
-5. Размер bundle (~600KB) приемлем для проекта с богатой визуализацией
+---
+
+## Technical Details
+
+**Web Audio API Setup:**
+```javascript
+// AudioContext настройки
+const audioContext = new AudioContext()
+const analyserNode = audioContext.createAnalyser()
+analyserNode.fftSize = 2048
+analyserNode.smoothingTimeConstant = 0.8
+
+// getUserMedia настройки для гитары
+{
+  audio: {
+    echoCancellation: false,
+    noiseSuppression: false,
+    autoGainControl: false
+  }
+}
+```
+
+**Алгоритм определения уровня:**
+- Используется getByteTimeDomainData для получения waveform
+- Вычисление RMS (Root Mean Square) для громкости
+- Нормализация от 0 до 1
+- Обновление через requestAnimationFrame
 
 ---
 
 ## Notes & Observations
 
-**Оба варианта показали отличную производительность:**
-- Canvas 2D: 60 FPS, минимальная нагрузка
-- Three.js: 60 FPS, стабильная работа WebGL
+**Технические решения:**
+- Отключены echo cancellation и noise suppression для чистого звука гитары
+- FFT size 2048 обеспечивает хорошее частотное разрешение
+- RMS метод даёт стабильный показатель громкости
+- Composable паттерн позволяет переиспользовать логику
 
-**Canvas 2D был бы хорош для простой визуализации**, но требования проекта к "магическим" эффектам делают Three.js очевидным выбором.
+**Стилизация:**
+- Градиенты: #667eea → #764ba2 (основная кнопка)
+- Активное состояние: #f093fb → #f5576c
+- Фон: #0f0c29 → #302b63 → #24243e
+- Анимации: pulse, smooth transitions
 
-**Dev сервер запущен:**
+**Dev сервер:**
 - URL: http://localhost:5174/
-- Можно увидеть оба POC в действии
+- Hot reload работает
+- Vue DevTools доступен
 
 ---
 
 ## Next Steps
 
-**Готовы к Sprint 1:**
-- AUDIO-1: Захват звука с микрофона
-- VIS-1: Базовая визуализация струн на Three.js
+**Готово для Sprint 1:**
+- ✅ AUDIO-1: Захват звука с микрофона
 
-**Sprint 0 завершен:**
-- ✅ INIT-1: Настройка Vue 3 + Vite
-- ✅ INIT-2: Установка Essentia.js
-- ✅ INIT-3: Выбор Three.js
+**Следующие задачи Sprint 1:**
+- AUDIO-2: Частотный анализ FFT
+- AUDIO-3: Определение питча
+- VIS-1: Базовая визуализация струн
+
+**AnalyserNode готов для следующих задач:**
+- Доступен через `getAnalyserNode()` из composable
+- Можно использовать для FFT анализа (AUDIO-2)
+- Настроен с fftSize 2048 для pitch detection
 
 ---
 
 ## Metadata
 
-- **Last Task:** INIT-1 + INIT-2 (завершено 2026-02-06)
-- **Archived:** `.memory/history/2026-02-06-init-project-and-audio-libs.md`
-- **Sprint:** Sprint 0 → Sprint 1 transition
-- **Status:** Waiting for new task assignment
+- **Task:** AUDIO-1 (Sprint 1)
+- **Status:** `done`
+- **Completed:** 2026-02-06
+- **Next:** AUDIO-2 или VIS-1 (по выбору)
+- **Sprint Progress:** 1/5 задач Sprint 1 MVP
 
 ---
 
