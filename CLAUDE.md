@@ -57,7 +57,8 @@ Microphone → AudioContext → AnalyserNode → [YIN Algorithm | Chromagram] �
 - **`useFrequencyAnalyzer`** — YIN pitch detection + spectrum visualization (parallel buffers: `getFloatTimeDomainData` for YIN, `getByteFrequencyData` for spectrum)
 - **`useChromaAnalyzer`** — chromagram analysis (FFT → 12 pitch classes), threshold-based activation
 - **`useChordRecognition`** — chord matching with 3-frame stabilization (~50ms), detects when ≥2 pitch classes active
-- **`useSettings`** — singleton settings store (microphone selection, noise threshold), localStorage persistence
+- **`useSettings`** — singleton settings store (microphone selection, noise threshold, bloom parameters), localStorage persistence
+  - Returns: selectedDeviceId, noiseThreshold, bloomIntensity, bloomThreshold, bloomRadius
 
 ### Main Components
 
@@ -65,13 +66,17 @@ Microphone → AudioContext → AnalyserNode → [YIN Algorithm | Chromagram] �
 - **`GuitarStringsVisualization.vue`** — Three.js WebGL scene, renders 6 guitar strings with emissive materials, particle system (2000 particles max, burst + stream emissions)
 - **`ChordNameDisplay.vue`** — displays detected chord with gradient text, confidence bar, alternative chord suggestions
 - **`FrequencySpectrumVisualizer.vue`** — canvas-based spectrum bars (50 bars)
-- **`SettingsPanel.vue`** — modal for microphone selection and noise threshold adjustment
+- **`SettingsPanel.vue`** — modal for microphone selection, noise threshold, and bloom effect controls (bloomIntensity, bloomThreshold, bloomRadius)
 
 ### Utilities & Data
 
 - **`src/utils/guitarMapping.ts`** — maps frequencies to guitar strings using **semitone distance** `12 * Math.log2(f1/f2)` (NOT absolute Hz difference)
 - **`src/utils/noteUtils.ts`** — NOTE_NAMES, pitch class ↔ note name conversions
 - **`src/data/chordDatabase.ts`** — chord templates (10 types: major, minor, dom7, maj7, min7, sus2, sus4, dim, aug, power), `lookupChord()` scoring function
+- **`src/constants/colors.ts`** — centralized color palette (COLORS, GRADIENTS, ColorUtils) for consistent theming
+- **`src/shaders/`** — GLSL shaders directory
+  - `stringVertex.glsl` — wave oscillation with exponential decay
+  - `stringFragment.glsl` — gradient colors with radial glow, fresnel, shimmer effects
 
 ---
 
@@ -104,12 +109,20 @@ Microphone → AudioContext → AnalyserNode → [YIN Algorithm | Chromagram] �
 
 ### Three.js Visualization
 
+- **Post-Processing:** EffectComposer with UnrealBloomPass for magical glow effect
+  - bloomIntensity (0.5-3.0): controls strength of bloom
+  - bloomThreshold (0.0-1.0): brightness threshold for bloom activation
+  - bloomRadius (0.0-1.0): blur radius of bloom effect
+  - All parameters user-adjustable via SettingsPanel, persisted to localStorage
+- **Guitar Strings:** CylinderGeometry with ShaderMaterial
+  - Custom vertex shader: wave oscillation with exponential decay based on attack time
+  - Custom fragment shader: gradient colors (light→dark), radial glow, fresnel edge lighting, shimmer animation
+  - Wave frequency unique per string (1.0 + index * 0.15)
 - **Particle System:** Pool-based (2000 max), GPU-optimized (Float32Array buffers), shader-based rendering
   - Burst emission: ~50 particles on string attack
   - Stream emission: 18 particles/sec for active strings
   - Custom vertex/fragment shaders with additive blending
   - Smoothstep alpha/size interpolation for longer brightness
-- **Guitar Strings:** CylinderGeometry with MeshStandardMaterial, emissive colors (purple → pink gradient)
 - **Chord Visualization:** THREE.Line connecting active strings, per-string intensity from chromagram
 
 ---
@@ -161,12 +174,13 @@ Microphone → AudioContext → AnalyserNode → [YIN Algorithm | Chromagram] �
 
 ## Project Documentation
 
-- **`.memory/backlog.md`** — sprint tracking, completed tasks (Sprint 0-3)
-- **`.memory/currentWork.md`** — current sprint status (Sprint 4+ visual overhaul planned)
-- **`.memory/visualDesignSpec.md`** — full visual design specification for upcoming sprints
-- **`.memory/sprint4_backlog.md`** — detailed backlog for Sprints 4-9 (shader-based effects, ghost trails, background particles)
-- **`.memory/quickStartGuide.md`** — quick start guide for Sprint 4
-- **MEMORY.md (auto-memory)** — key architectural decisions and lessons learned
+- **`.memory/README.md`** — documentation system overview
+- **`.memory/currentWork.md`** — current sprint status (Sprint 4 ✅ complete, Sprint 5+ planned)
+- **`.memory/progress.md`** — detailed progress tracker for completed sprints
+- **`.memory/backlog.md`** — sprint backlog and task planning
+- **`.memory/currentInput.md`** — user ideas and task descriptions
+- **`.memory/visualDesignSpec.md`** — full visual design specification for visual overhaul
+- **`MEMORY.md` (auto-memory)** — key architectural decisions and lessons learned
 
 ---
 
@@ -192,14 +206,24 @@ Microphone → AudioContext → AnalyserNode → [YIN Algorithm | Chromagram] �
 
 ---
 
-## Future Roadmap (Sprint 4+)
+## Future Roadmap (Sprints 5+)
 
-Planned visual overhaul with advanced WebGL effects:
-- **Sprint 4:** Post-processing pipeline (EffectComposer + UnrealBloomPass), GLSL shaders for strings
-- **Sprint 5:** Ghost trails effect (FBO accumulation), enhanced string physics
-- **Sprint 6:** Background particles (cosmic dust), nebula effects
-- **Sprint 7:** Continuous spectrum visualizer (replace bar chart)
-- **Sprint 8:** UI refresh, particle bursts on attack, ripple effects
-- **Sprint 9:** Performance optimization, adaptive quality settings
+Visual overhaul with advanced WebGL effects (Sprint 4 ✅ complete):
 
-See `.memory/sprint4_backlog.md` for detailed tasks.
+**✅ Sprint 4 (DONE):**
+- Post-processing pipeline (EffectComposer + UnrealBloomPass)
+- GLSL shaders for strings (wave oscillation, radial glow, fresnel, shimmer)
+- Centralized color palette (COLORS, GRADIENTS, ColorUtils)
+- Bloom settings UI (threshold, radius, intensity controls)
+
+**⏳ Sprint 5 (Planned):**
+- Ghost trails effect (FBO accumulation)
+- Enhanced string physics and decay
+
+**⏳ Sprint 6+:**
+- Background particles (cosmic dust), nebula effects
+- Continuous spectrum visualizer (replace bar chart)
+- UI refresh, particle bursts on attack, ripple effects
+- Performance optimization, adaptive quality settings
+
+See `.memory/progress.md` and `.memory/visualDesignSpec.md` for detailed information.
