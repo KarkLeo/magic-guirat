@@ -94,6 +94,9 @@ export interface UseChordRecognitionReturn {
 export interface UseSettingsReturn {
   selectedDeviceId: Ref<string>
   noiseThreshold: Ref<number>
+  bloomIntensity: Ref<number>
+  bloomThreshold: Ref<number>
+  bloomRadius: Ref<number>
   availableDevices: Ref<MediaDeviceInfo[]>
   refreshDevices: () => Promise<void>
   resetToDefaults: () => void

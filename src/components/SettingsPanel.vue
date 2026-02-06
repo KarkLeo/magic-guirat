@@ -49,6 +49,66 @@
               <span>Низкая</span>
             </div>
           </div>
+
+          <!-- Bloom Intensity -->
+          <div class="settings-section">
+            <label class="settings-label">
+              Интенсивность свечения
+              <span class="settings-value">{{ formattedBloom }}</span>
+            </label>
+            <input
+              type="range"
+              v-model.number="bloomIntensity"
+              min="0.5"
+              max="3.0"
+              step="0.1"
+              class="settings-range settings-range-bloom"
+            />
+            <div class="settings-range-labels">
+              <span>Слабое</span>
+              <span>Магическое ✨</span>
+            </div>
+          </div>
+
+          <!-- Bloom Threshold -->
+          <div class="settings-section">
+            <label class="settings-label">
+              Порог свечения
+              <span class="settings-value">{{ formattedThresholdValue }}</span>
+            </label>
+            <input
+              type="range"
+              v-model.number="bloomThreshold"
+              min="0.0"
+              max="1.0"
+              step="0.05"
+              class="settings-range"
+            />
+            <div class="settings-range-labels">
+              <span>Всё светит</span>
+              <span>Только яркое</span>
+            </div>
+          </div>
+
+          <!-- Bloom Radius -->
+          <div class="settings-section">
+            <label class="settings-label">
+              Размер свечения
+              <span class="settings-value">{{ formattedRadiusValue }}</span>
+            </label>
+            <input
+              type="range"
+              v-model.number="bloomRadius"
+              min="0.0"
+              max="1.0"
+              step="0.05"
+              class="settings-range"
+            />
+            <div class="settings-range-labels">
+              <span>Маленький</span>
+              <span>Большой</span>
+            </div>
+          </div>
         </div>
 
         <div class="settings-footer">
@@ -80,10 +140,13 @@ const onKeydown = (e) => {
 onMounted(() => document.addEventListener('keydown', onKeydown))
 onUnmounted(() => document.removeEventListener('keydown', onKeydown))
 
-const { selectedDeviceId, noiseThreshold, availableDevices, refreshDevices, resetToDefaults } =
+const { selectedDeviceId, noiseThreshold, bloomIntensity, bloomThreshold, bloomRadius, availableDevices, refreshDevices, resetToDefaults } =
   useSettings()
 
 const formattedThreshold = computed(() => noiseThreshold.value.toFixed(3))
+const formattedBloom = computed(() => bloomIntensity.value.toFixed(1))
+const formattedThresholdValue = computed(() => bloomThreshold.value.toFixed(2))
+const formattedRadiusValue = computed(() => bloomRadius.value.toFixed(2))
 
 // Обновляем список устройств при открытии панели
 watch(

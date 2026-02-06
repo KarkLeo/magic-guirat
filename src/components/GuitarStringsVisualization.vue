@@ -12,6 +12,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
 import { GUITAR_STRINGS, TOTAL_STRINGS } from '@/utils/guitarMapping'
 import { ColorUtils } from '@/constants'
+import { useSettings } from '@/composables/useSettings'
 // Импортируем шейдеры как raw строки
 import stringVertexShader from '@/shaders/stringVertex.glsl?raw'
 import stringFragmentShader from '@/shaders/stringFragment.glsl?raw'
@@ -43,6 +44,7 @@ let scene = null
 let camera = null
 let renderer = null
 let composer = null // Post-processing composer
+let bloomPass = null // Bloom effect pass
 let strings = [] // Массив mesh'ей струн
 let chordLines = [] // Соединительные линии между аккордными струнами
 let animationFrameId = null
@@ -83,6 +85,9 @@ const STREAM_RATE = 18
 const PARTICLE_LIFETIME_MIN = 1.0
 const PARTICLE_LIFETIME_MAX = 2.2
 const PARTICLE_BASE_SIZE = 0.38
+
+// Настройки из useSettings
+const { bloomIntensity, bloomThreshold, bloomRadius } = useSettings()
 
 /**
  * Создаёт систему частиц с предаллоцированным пулом
@@ -197,11 +202,11 @@ const initThreeJS = () => {
   composer.addPass(renderPass)
 
   // Bloom pass для магического свечения
-  const bloomPass = new UnrealBloomPass(
+  bloomPass = new UnrealBloomPass(
     new THREE.Vector2(CANVAS_WIDTH, CANVAS_HEIGHT),
-    1.5,  // strength - интенсивность bloom
-    0.8,  // radius - радиус размытия
-    0.15  // threshold - порог яркости для bloom
+    bloomIntensity.value,   // strength - интенсивность bloom (управляется из настроек)
+    bloomRadius.value,      // radius - радиус размытия (управляется из настроек)
+    bloomThreshold.value    // threshold - порог яркости для bloom (управляется из настроек)
   )
   composer.addPass(bloomPass)
 
@@ -576,6 +581,25 @@ watch(
   },
   { deep: true },
 )
+
+// Watch для обновления bloom параметров
+watch(bloomIntensity, (newIntensity) => {
+  if (bloomPass) {
+    bloomPass.strength = newIntensity
+  }
+})
+
+watch(bloomThreshold, (newThreshold) => {
+  if (bloomPass) {
+    bloomPass.threshold = newThreshold
+  }
+})
+
+watch(bloomRadius, (newRadius) => {
+  if (bloomPass) {
+    bloomPass.radius = newRadius
+  }
+})
 
 // Lifecycle hooks
 onMounted(() => {
