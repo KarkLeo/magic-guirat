@@ -237,16 +237,17 @@ const createStrings = () => {
     // Shader Material с кастомными шейдерами
     const material = new THREE.ShaderMaterial({
       uniforms: {
-        // Параметры волны
+        // Параметры волны (vertex shader)
         uTime: { value: 0.0 },
         uAmplitude: { value: 0.0 }, // Начинаем с 0, обновится при активации
         uFrequency: { value: 1.0 + index * 0.15 }, // Разная частота для каждой струны
         uDamping: { value: 1.5 },
         uAttackTime: { value: 0.0 },
-        // Параметры цвета
+        // Параметры цвета (fragment shader)
         uColorStart: { value: colorStart },
         uColorEnd: { value: colorEnd },
         uGlowIntensity: { value: 0.2 }, // Базовое слабое свечение
+        uEdgeGlow: { value: 0.3 }, // Fresnel edge enhancement
       },
       vertexShader: stringVertexShader,
       fragmentShader: stringFragmentShader,
