@@ -1,197 +1,234 @@
-# Current Work
+# Текущая Работа - Visual Overhaul (Sprints 4-9)
 
-## Status
-
-**Current:** `done`
-**Task:** Post-Sprint 3: Bug Fixes
-**Phase:** ✅ ВСЕ БАГИ ИСПРАВЛЕНЫ И ЗАКОММИЧЕНЫ
+**Дата начала:** 2026-02-07
+**Текущий спринт:** Sprint 4 (Подготовка)
+**Статус:** READY TO START
 
 ---
 
-## Task Summary
+## 🎯 Цель Глобальная
 
-**Sprint 2: Chromagram + Chord Recognition + Multi-string Visualization**
-
-### Что реализовано:
-
-#### 1. Утилиты нот — `src/utils/noteUtils.js`
-- `NOTE_NAMES` — 12 нот хроматической гаммы
-- `noteNameToPitchClass()` — название ноты → pitch class (0-11)
-- `pitchClassToNoteName()` — pitch class → название ноты
-
-#### 2. База данных аккордов — `src/data/chordDatabase.js`
-- `CHORD_TEMPLATES` — 10 типов: major, minor, dom7, maj7, min7, sus2, sus4, dim, aug, power
-- `CHORD_DISPLAY_NAMES` — суффиксы для отображения
-- `lookupChord(activePitchClasses, chromagram, maxResults)` — скоринг: 12 корней × 10 шаблонов
-
-#### 3. Chromagram анализатор — `src/composables/useChromaAnalyzer.js`
-- FFT `getByteFrequencyData()` → маппинг bins на 12 pitch classes
-- Нормализация + threshold-based активация (0.3)
-- Экспорт: `chromagram`, `activePitchClasses`, `startAnalysis()`, `stopAnalysis()`
-
-#### 4. Распознавание аккордов — `src/composables/useChordRecognition.js`
-- Watch на `activePitchClasses` → `lookupChord()` → стабилизация (3 фрейма)
-- Маппинг pitch classes → гитарные струны
-- Экспорт: `currentChord`, `chordCandidates`, `isChordDetected`, `detectedStrings`
-
-#### 5. AudioAnalyzerView.vue — модифицирован
-- Подключены `useChromaAnalyzer` + `useChordRecognition`
-- `detectionMode` computed: 'chord' если ≥2 pitch classes + аккорд найден
-- `activeStringIndices` (Array) вместо `activeStringIndex` (Number)
-- `stringIntensities` (Object) из chromagram
-- Добавлен `<ChordNameDisplay>`
-
-#### 6. GuitarStringsVisualization.vue — модифицирован
-- Props: `activeStringIndices` (Array), `stringIntensities` (Object), `detectionMode` (String)
-- Set-based проверка активных струн, per-string intensity
-- Соединительные линии (THREE.Line) между аккордными струнами в chord mode
-- Cleanup линий при смене аккорда / unmount
-
-#### 7. ChordNameDisplay.vue — создан
-- Gradient text (корень крупнее, суффикс мельче)
-- Confidence bar
-- Альтернативные аккорды
-- CSS transitions при смене аккорда
-- Фиолетово-розовая палитра, backdrop blur
-
-### Архитектурные решения:
-- **Отдельный composable** для chromagram (не расширяем useFrequencyAnalyzer) — разные домены (frequency vs time)
-- **YIN сохраняется** для single-note (лучшая точность)
-- **Автоматическое переключение** single↔chord через `detectionMode`
-- **Стабилизация 3 фрейма** (~50ms) предотвращает мерцание
+Трансформировать Magic Guitar из минималистичного визуализатора в магический, космический опыт с богатыми анимациями и эффектами.
 
 ---
 
-## Metadata
+## 📋 Подготовленная Документация
 
-- **Task:** Sprint 3 + Bug Fixes
-- **Status:** `done`
-- **Updated:** 2026-02-06 21:15 (bug fixes completed)
-- **Sprint Progress:**
-  - Sprint 2: 100% ЗАВЕРШЕН ✅
-  - Sprint 3: 100% ЗАВЕРШЕН ✅
-    - ✅ SETTINGS-1: UI настроек (микрофон, чувствительность, localStorage)
-    - ✅ VIS-6: Система частиц (burst + stream, GPU-optimized)
-  - Post-Sprint 3: 100% BUG FIXES ✅
-    - ✅ BUG-1: Removed eternal "Loading..." badge
-    - ✅ BUG-2: Fixed layout shift (dergavoe positioning)
-    - ✅ BUG-3: Increased chord display visibility (1-2 sec)
+### ✅ Завершено (2026-02-07)
+- [x] **visualDesignSpec.md** - полная спецификация визуального дизайна
+  - Цветовая палитра
+  - Структура макета
+  - Описание всех анимаций
+  - Технические требования
+  - Критерии готовности
 
----
+- [x] **sprint4_backlog.md** - детальный бэклог на 6 спринтов
+  - Sprint 4: Шейдерный фундамент (4-6 дней)
+  - Sprint 5: Enhanced Strings + Ghost Trails (5-7 дней)
+  - Sprint 6: Background Effects (4-5 дней)
+  - Sprint 7: Advanced Spectrum (3-4 дня)
+  - Sprint 8: UI Refresh + Extra Animations (3-4 дня)
+  - Sprint 9: Performance Optimization (3-4 дня)
 
-## Sprint 3 Progress - ✅ ЗАВЕРШЕНА
-
-### ✅ SETTINGS-1: UI настроек
-**Статус:** Реализовано, ожидает коммита
-**Дата:** 2026-02-06
-
-#### Что реализовано:
-1. **src/composables/useSettings.js** — singleton settings store
-   - Загрузка настроек из localStorage
-   - Выбор микрофона (список доступных девайсов)
-   - Слайдер чувствительности (noise threshold: 0.0-1.0)
-   - Автоматическое сохранение в localStorage
-   - Reactive computed properties для Vue компонентов
-
-2. **src/components/SettingsPanel.vue** — модальное окно настроек
-   - Кнопка открытия панели (Settings icon)
-   - Dropdown для выбора микрофона (перечисление доступных девайсов)
-   - Слайдер для регулировки noise threshold (0-100%)
-   - Индикатор текущих значений
-   - Backdrop blur эффект, фиолетово-розовая палитра
-   - Интеграция с AudioAnalyzerView
-
-3. **Интеграция в AudioAnalyzerView.vue**
-   - Подключена useSettings composable
-   - Передача selectedMicrophone в useAudioCapture
-   - Передача noiseThreshold в анализаторы (useFrequencyAnalyzer, useChromaAnalyzer)
-   - Динамический выбор микрофона и настройка чувствительности
-
-### ✅ VIS-6: Система частиц (ГОТОВО К КОММИТУ)
-**Статус:** Полностью реализовано в GuitarStringsVisualization.vue
-**Дата:** 2026-02-06
-
-#### Что реализовано:
-1. **Particle Pool System** (2000 max частиц)
-   - Float32Array буферы для GPU: position, color, alpha, size
-   - Typed arrays для CPU: velocity, lifetime, alive status
-   - Circular ring buffer для эффективной эмиссии
-
-2. **Эмиссия частиц**
-   - `emitBurst()` — всплеск ~50 частиц при новой активной струне
-   - `emitStream()` — постоянный поток ~18 частиц/сек с accumulator (intensity ×0.8)
-   - Интенсивность зависит от stringIntensities
-
-3. **Физика частиц**
-   - Скорость с random разлетом (spread + upward)
-   - Drag (0.98 per frame)
-   - Lifetime 1.0–2.2 сек с smoothstep затуханием alpha
-   - Per-particle size interpolation (base 0.38, smoothstep decay)
-
-4. **Shader-based Rendering**
-   - Custom vertex shader для размера (gl_PointSize ×450, distance-based scaling)
-   - Fragment shader с soft particles (smoothstep 0.08, discard)
-   - Additive blending для магических эффектов
-   - Per-particle colors (цвет струны + intensity boost)
-   - Начальная alpha 0.8–1.0 для максимальной яркости
-
-5. **Оптимизация**
-   - GPU буферы обновляются только при изменении
-   - Только живые частицы обновляются в CPU
-   - Frustum culling disabled (нужна глобальная visibility)
-
-#### Файлы для коммита:
-- ✅ src/components/SettingsPanel.vue (новый)
-- ✅ src/composables/useSettings.js (новый)
-- ✅ src/components/AudioAnalyzerView.vue (модифицирован)
-- ✅ src/composables/useAudioCapture.js (модифицирован)
-- ✅ src/composables/useFrequencyAnalyzer.js (модифицирован)
-- ✅ src/components/GuitarStringsVisualization.vue (уже содержит VIS-6)
-- ✅ src/App.vue (модифицирован)
-- ✅ src/assets/main.css (модифицирован)
-- ✅ .memory/backlog.md (обновлен)
-- ✅ .memory/currentWork.md (этот файл)
+- [x] **quickStartGuide.md** - гайд для быстрого старта
+  - Первые шаги
+  - Чек-листы
+  - Troubleshooting
+  - Ресурсы
 
 ---
 
-## Post-Sprint 3: Bug Fixes ✅ ЗАВЕРШЕНЫ
+## 🚀 Sprint 4: Шейдерный Фундамент
 
-### 🐛 BUG-1: Вечный "Loading..." badge [FIXED]
-**Описание:** Возле частотного спектра постоянно отображался "⏳ Загрузка..."
-**Причина:** `isEssentiaLoaded="false"` (Essentia.js отключен), v-else всегда активен
-**Решение:** Удален v-else span с loading badge
-**Файл:** `src/components/FrequencySpectrumVisualizer.vue` (строка 7)
-**Коммит:** ac916cb
+### Статус: NOT STARTED
 
-### 🐛 BUG-2: Дергавое позиционирование [FIXED]
-**Описание:** При смене компонентов UI скакал и выглядел странно
-**Причина:** `.dominant-info { min-height: 130px }` вызывал layout shift
-**Решение:** Изменено на `min-height: auto`
-**Файл:** `src/components/FrequencySpectrumVisualizer.vue` (строка 270)
-**Коммит:** ac916cb
+### Задачи
 
-### 🐛 BUG-3: Быстро исчезающие блоки нот [FIXED]
-**Описание:** Аккорды исчезали слишком быстро, не было времени прочитать
-**Причина:** Transition duration слишком короткие (0.15s-0.4s)
-**Решение:**
-- ChordNameDisplay `.chord-swap-leave-active`: 0.15s → 1.0s
-- AudioAnalyzerView `.fade-leave-active`: 0.4s → 1.2s
-- Теперь 1-2 сек на чтение информации
-**Файлы:**
-- `src/components/ChordNameDisplay.vue` (строка 134)
-- `src/components/AudioAnalyzerView.vue` (строка 244)
-**Коммит:** ac916cb
+| ID | Задача | Приоритет | Оценка | Статус |
+|----|--------|-----------|--------|--------|
+| S4-T1 | Post-Processing Pipeline | P0 | 2-3h | ⬜ TODO |
+| S4-T2 | Vertex Shader для струн | P0 | 3-4h | ⬜ TODO |
+| S4-T3 | Fragment Shader градиенты | P1 | 2h | ⬜ TODO |
+| S4-T4 | Цветовая палитра (constants) | P1 | 1h | ⬜ TODO |
+| S4-T5 | Bloom Pass настройка | P1 | 2h | ⬜ TODO |
+
+**Блокеры:** нет
+**Dependencies:** нужно установить `postprocessing`
 
 ---
 
-## Next Steps
+## 📝 Следующие Действия
 
-Sprint 4 (Icebox):
-- [ ] VIS-7: Визуализация табулатур
-- [ ] HIST-1: История игры
-- [ ] REC-1: Запись и воспроизведение
-- [ ] EDU-1: Режим обучения
+### Immediate Next Steps
+1. Установить зависимости: `npm install postprocessing gsap`
+2. Создать папки: `src/shaders/`, `src/constants/`
+3. Начать S4-T1: настроить EffectComposer + UnrealBloomPass
+4. Проверить что bloom работает без регрессий
+
+### После Sprint 4
+- Sprint 5: Ghost Trails (самая сложная часть)
+- Возможно параллельно Sprint 6 (фоновые эффекты) если Sprint 5 займет много времени
 
 ---
 
-*Auto-updated by Claude Code*
+## 🎨 Визуальные Референсы
+
+### Изучены
+- [x] Эскиз макета (эскиз.jpeg)
+- [x] Космический градиент (_.jpeg)
+- [x] Туманность в сине-розовых тонах (_ (1).jpeg)
+- [x] Волнообразные линии (Waves.jpeg)
+- [x] Плавные волны с частицами (Download free...jpeg)
+
+### Ключевые Визуальные Элементы
+- Космическая/магическая атмосфера
+- Градиенты: фиолетовый → синий → розовый → оранжевый
+- Полупрозрачные слои с эффектом наложения
+- Частицы/звезды в пространстве
+- Bloom/glow эффекты
+- Плавные волнообразные формы
+
+---
+
+## 🔧 Технический Стек (Новые Дополнения)
+
+### Библиотеки
+- **postprocessing** - Three.js post-processing effects
+- **GSAP** - анимации UI элементов (для Sprint 8)
+
+### Three.js Модули
+- EffectComposer
+- RenderPass
+- UnrealBloomPass
+- ShaderPass (возможно для Sprint 5)
+- BufferGeometry
+- ShaderMaterial
+
+### Шейдеры (GLSL)
+- String oscillation (vertex)
+- String gradients (fragment)
+- Ghost trail accumulation (fragment) - Sprint 5
+- Spectrum fade (fragment) - Sprint 7
+- Background nebula (fragment) - Sprint 6
+
+---
+
+## 📊 Прогресс
+
+### Overall Progress
+- Sprint 4: 0% (0/5 задач)
+- Sprint 5: 0%
+- Sprint 6: 0%
+- Sprint 7: 0%
+- Sprint 8: 0%
+- Sprint 9: 0%
+
+**Total:** 0% (Planning complete, ready to implement)
+
+---
+
+## 🎯 Success Criteria
+
+### Visual Quality
+- Соответствие дизайн-спеке: 95%+
+- Магическая, космическая атмосфера
+- Плавные анимации без артефактов
+
+### Performance
+- **Desktop:** 60 FPS stable
+- **Laptop:** 55+ FPS
+- **Low-end:** 45+ FPS with Auto quality
+
+### User Experience
+- Smooth transitions между состояниями
+- Настройки интуитивны
+- Эффекты не отвлекают от игры
+
+---
+
+## 📅 Timeline
+
+| Период | Спринт | Ожидаемые Результаты |
+|--------|--------|----------------------|
+| Week 1 | Sprint 4 | Post-processing + базовые шейдеры |
+| Week 2-3 | Sprint 5 | Ghost trails эффект |
+| Week 4 | Sprint 6 | Фоновые эффекты |
+| Week 5 | Sprint 7 | Новый спектр |
+| Week 6 | Sprint 8 | UI polish |
+| Week 7 | Sprint 9 | Оптимизация |
+
+**Estimated completion:** 6-8 недель
+
+---
+
+## 🐛 Known Issues / Blockers
+
+**Текущие:** нет
+
+**Potential Risks:**
+- Ghost trails (Sprint 5) - сложная техника с FBO, может занять больше времени
+- Performance на laptop/mobile - возможно понадобится больше оптимизаций
+- Bloom может быть слишком затратным на weak GPUs
+
+**Mitigation:**
+- Adaptive quality (Sprint 9)
+- Quality presets в настройках
+- Профилирование на каждом спринте
+
+---
+
+## 💡 Notes
+
+### TypeScript Migration
+- Текущий код: JavaScript
+- План: постепенная миграция новых файлов на TypeScript
+- Приоритет: новые шейдеры и компоненты сразу на TS
+
+### Code Style
+- Следовать существующим паттернам
+- Vue 3 Composition API
+- Reactive refs для Three.js objects
+- Cleanup в onUnmounted
+
+### Git Strategy
+- Commit после каждой завершенной задачи
+- Branch per sprint (опционально)
+- Meaningful commit messages: "feat(sprint4): add bloom post-processing"
+
+---
+
+## 🔗 Связанные Документы
+
+- `.memory/visualDesignSpec.md` - полная визуальная спецификация
+- `.memory/sprint4_backlog.md` - детальный бэклог всех спринтов
+- `.memory/quickStartGuide.md` - гайд для старта
+- `.memory/backlog.md` - общий бэклог проекта (старые спринты)
+- `MEMORY.md` - авто-память с ключевыми архитектурными решениями
+
+---
+
+## 🚦 Status Legend
+
+- ⬜ TODO - не начато
+- 🔵 IN PROGRESS - в работе
+- ✅ DONE - завершено
+- 🔴 BLOCKED - заблокировано
+- ⚠️ AT RISK - есть риски
+
+---
+
+## 📜 Previous Work (Completed)
+
+### Sprint 0-3: ✅ ЗАВЕРШЕНЫ
+- Sprint 0: Init, deps (DONE)
+- Sprint 1: Audio capture, pitch detection, string viz, UI polish (DONE)
+- Sprint 2: Chromagram, chord recognition, multi-string viz (DONE)
+- Sprint 3: Settings panel, particle system (DONE)
+- Post-Sprint 3: Bug fixes (DONE)
+
+**Последний коммит:** ac916cb - fix: resolve three UI bugs (spectrum badge, layout shift, chord display timing)
+
+---
+
+**Last Updated:** 2026-02-07
+**Next Review:** После завершения Sprint 4
