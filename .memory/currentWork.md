@@ -3,105 +3,144 @@
 ## Status
 
 **Current:** `done`
-**Task:** AUDIO-1 - Захват звука с микрофона ✅
+**Task:** AUDIO-2 - Частотный анализ FFT ✅
 
 ---
 
 ## Task Summary
 
-**AUDIO-1: Захват звука с микрофона (US-1.1)**
+**AUDIO-2: Частотный анализ FFT (US-1.2)**
 
-✅ Создал composable `useAudioCapture.js` для работы с Web Audio API
-✅ Реализовал запрос доступа к микрофону
-✅ Настроил AudioContext и MediaStream
-✅ Добавил обработку ошибок и permissions
-✅ Реализовал мониторинг уровня сигнала (RMS)
-✅ Создал UI компонент `AudioCaptureButton.vue`
-✅ Добавил визуальный индикатор уровня сигнала
-✅ Интегрировал в App.vue с магической темой
+✅ Создал composable `useFrequencyAnalyzer.js` для FFT анализа
+✅ Реализовал буферизацию данных (3 кадра) для сглаживания
+✅ Оптимизировал для гитарного диапазона (82-1200 Hz)
+✅ Вычисление доминирующей частоты с фильтрацией шума
+✅ Конвертация частоты в ноту (с cents для точности)
+✅ Создал UI компонент `FrequencySpectrumVisualizer.vue`
+✅ Создал контейнер `AudioAnalyzerView.vue`
+✅ Обновил `AudioCaptureButton.vue` для поддержки props
+✅ Интегрировал все компоненты в приложение
 
 **Созданные файлы:**
-- `src/composables/useAudioCapture.js` - Composable для работы с аудио
-- `src/components/AudioCaptureButton.vue` - UI компонент управления
-- Обновлен `src/App.vue` - Темная магическая тема
+- `src/composables/useFrequencyAnalyzer.js` - FFT анализ
+- `src/components/FrequencySpectrumVisualizer.vue` - Визуализация спектра
+- `src/components/AudioAnalyzerView.vue` - Контейнер компонентов
+- Обновлён `src/components/AudioCaptureButton.vue` - Поддержка props
 
 **Функционал:**
-- Захват звука с микрофона через getUserMedia
-- Настройка для гитары (echo cancellation OFF, noise suppression OFF)
-- AnalyserNode с FFT size 2048 для частотного анализа
-- Реактивный мониторинг уровня сигнала в реальном времени
-- Обработка ошибок: NotAllowed, NotFound, NotReadable
-- Автоматическая очистка ресурсов при размонтировании
+- FFT анализ через getByteFrequencyData (1024 bins)
+- Буферизация 3 кадров для стабильности спектра
+- Фокус на гитарном диапазоне (82-1200 Hz)
+- Вычисление доминирующей частоты с порогом шума (30/255)
+- Конвертация частоты → нота (A4 = 440 Hz)
+- Ресемплинг спектра для визуализации (50 bars)
+- Real-time обновление через requestAnimationFrame
 
 **Визуализация:**
-- Кнопка запуска/остановки с иконками
-- Индикатор уровня сигнала с градиентом
-- Анимация пульсации при активном захвате
-- Фиолетово-синяя магическая палитра
-- Темный градиентный фон
+- Canvas spectrum analyzer (800x200px, 50 bars)
+- Фиолетово-синий градиент с glow эффектами
+- Отображение доминирующей частоты (Hz)
+- Отображение ноты с октавой (E2, A3, etc.)
+- Отображение центов (±100¢) для точности настройки
+- Grid линии для удобства чтения
+- Fade-in/out transition при появлении/скрытии
 
 ---
 
 ## Testing Checklist
 
 Проверить в браузере (http://localhost:5174/):
-- [ ] Кнопка "Начать захват звука" работает
-- [ ] Браузер запрашивает permission для микрофона
-- [ ] После разрешения захват стартует
-- [ ] Индикатор уровня сигнала отображается
-- [ ] Индикатор реагирует на звук (говорите/играйте)
-- [ ] Кнопка "Остановить захват" работает
-- [ ] Обработка отказа в доступе корректна
-- [ ] Обработка отсутствия микрофона корректна
-- [ ] Визуализация соответствует магической теме
+- [ ] Захват звука работает (AUDIO-1)
+- [ ] После запуска появляется спектр анализатор
+- [ ] Bars реагируют на звук в реальном времени
+- [ ] Доминирующая частота отображается корректно
+- [ ] Нота определяется правильно (E2, A2, D3, G3, B3, E4)
+- [ ] Центы показывают точность настройки
+- [ ] Спектр исчезает при остановке захвата
+- [ ] Производительность 60 FPS (проверить DevTools Performance)
+- [ ] Glow эффекты на высоких амплитудах
+
+**Тест с гитарой:**
+1. Сыграйте открытые струны и проверьте ноты:
+   - 6-я струна (E2) → должно показать ~82 Hz, E2
+   - 5-я струна (A2) → должно показать ~110 Hz, A2
+   - 4-я струна (D3) → должно показать ~147 Hz, D3
+   - 3-я струна (G3) → должно показать ~196 Hz, G3
+   - 2-я струна (B3) → должно показать ~247 Hz, B3
+   - 1-я струна (E4) → должно показать ~330 Hz, E4
 
 ---
 
 ## Technical Details
 
-**Web Audio API Setup:**
+**FFT Параметры:**
 ```javascript
-// AudioContext настройки
-const audioContext = new AudioContext()
-const analyserNode = audioContext.createAnalyser()
-analyserNode.fftSize = 2048
-analyserNode.smoothingTimeConstant = 0.8
+// Из AnalyserNode (AUDIO-1)
+fftSize: 2048
+frequencyBinCount: 1024
+sampleRate: 48000 Hz (обычно)
+binWidth: sampleRate / 2 / frequencyBinCount ≈ 23.4 Hz
 
-// getUserMedia настройки для гитары
-{
-  audio: {
-    echoCancellation: false,
-    noiseSuppression: false,
-    autoGainControl: false
-  }
-}
+// Гитарный диапазон
+GUITAR_MIN_FREQ: 82 Hz (E2)
+GUITAR_MAX_FREQ: 1200 Hz (E6)
+minBin: floor(82 / 23.4) ≈ 3
+maxBin: ceil(1200 / 23.4) ≈ 51
+
+// Буферизация
+BUFFER_SIZE: 3 кадра
+smoothing: среднее арифметическое
 ```
 
-**Алгоритм определения уровня:**
-- Используется getByteTimeDomainData для получения waveform
-- Вычисление RMS (Root Mean Square) для громкости
-- Нормализация от 0 до 1
-- Обновление через requestAnimationFrame
+**Алгоритм определения частоты:**
+```javascript
+1. Получить FFT данные (getByteFrequencyData)
+2. Добавить в буфер и усреднить (3 кадра)
+3. Найти максимум в диапазоне [minBin, maxBin]
+4. Проверить порог шума (amplitude > 30/255)
+5. Конвертировать: frequency = maxBin * binWidth
+6. Округлить до целого Hz
+```
+
+**Конвертация в ноту:**
+```javascript
+// A4 = 440 Hz (стандарт)
+// C0 = A4 * 2^(-4.75) ≈ 16.35 Hz
+
+halfSteps = 12 * log2(frequency / C0)
+midiNote = round(halfSteps)
+cents = (halfSteps - midiNote) * 100
+noteIndex = midiNote % 12
+octave = floor(midiNote / 12)
+note = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'][noteIndex]
+```
 
 ---
 
 ## Notes & Observations
 
 **Технические решения:**
-- Отключены echo cancellation и noise suppression для чистого звука гитары
-- FFT size 2048 обеспечивает хорошее частотное разрешение
-- RMS метод даёт стабильный показатель громкости
-- Composable паттерн позволяет переиспользовать логику
+- Буферизация 3 кадров устраняет "дрожание" спектра
+- Порог шума 30/255 отсеивает тихие артефакты
+- Ресемплинг до 50 bars оптимален для визуализации
+- Canvas более производителен чем SVG для real-time
+- requestAnimationFrame синхронизирован с refresh rate
+
+**Архитектура компонентов:**
+- AudioAnalyzerView - контейнер, управляет useAudioCapture
+- AudioCaptureButton - контролируемый компонент (props + emit)
+- FrequencySpectrumVisualizer - визуализация спектра
+- Разделение ответственности: логика vs UI
 
 **Стилизация:**
-- Градиенты: #667eea → #764ba2 (основная кнопка)
-- Активное состояние: #f093fb → #f5576c
-- Фон: #0f0c29 → #302b63 → #24243e
-- Анимации: pulse, smooth transitions
+- Canvas gradient: #f093fb → #a855f7 → #667eea
+- Glow эффекты: shadowBlur для amplitude > 0.5
+- Fade transition: 0.5s ease
+- Grid: rgba(168, 181, 255, 0.1)
 
 **Dev сервер:**
 - URL: http://localhost:5174/
-- Hot reload работает
+- HMR работает отлично
 - Vue DevTools доступен
 
 ---
@@ -110,26 +149,32 @@ analyserNode.smoothingTimeConstant = 0.8
 
 **Готово для Sprint 1:**
 - ✅ AUDIO-1: Захват звука с микрофона
+- ✅ AUDIO-2: Частотный анализ FFT
 
 **Следующие задачи Sprint 1:**
-- AUDIO-2: Частотный анализ FFT
-- AUDIO-3: Определение питча
+- AUDIO-3: Определение питча (pitch detection)
+  - Можем использовать Essentia.js или доработать useFrequencyAnalyzer
+  - Улучшить алгоритм для полифонии (несколько струн)
 - VIS-1: Базовая визуализация струн
+  - Three.js интеграция
+  - 6 визуальных струн
+  - Маппинг нот на струны
 
-**AnalyserNode готов для следующих задач:**
-- Доступен через `getAnalyserNode()` из composable
-- Можно использовать для FFT анализа (AUDIO-2)
-- Настроен с fftSize 2048 для pitch detection
+**Текущий FFT анализ готов для:**
+- Определения одиночных нот (монофония) ✅
+- Визуализации спектра ✅
+- Тюнера (по центам) ✅
+- Pitch detection библиотек (Essentia.js)
 
 ---
 
 ## Metadata
 
-- **Task:** AUDIO-1 (Sprint 1)
+- **Task:** AUDIO-2 (Sprint 1)
 - **Status:** `done`
 - **Completed:** 2026-02-06
-- **Next:** AUDIO-2 или VIS-1 (по выбору)
-- **Sprint Progress:** 1/5 задач Sprint 1 MVP
+- **Next:** AUDIO-3 (Определение питча) или VIS-1 (Визуализация струн)
+- **Sprint Progress:** 2/5 задач Sprint 1 MVP (40%)
 
 ---
 

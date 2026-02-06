@@ -1,5 +1,5 @@
 <script setup>
-import AudioCaptureButton from './components/AudioCaptureButton.vue'
+import AudioAnalyzerView from './components/AudioAnalyzerView.vue'
 </script>
 
 <template>
@@ -10,11 +10,11 @@ import AudioCaptureButton from './components/AudioCaptureButton.vue'
     </header>
 
     <main class="app-main">
-      <AudioCaptureButton />
+      <AudioAnalyzerView />
     </main>
 
     <footer class="app-footer">
-      <p>Sprint 1 • AUDIO-1: Захват звука с микрофона</p>
+      <p>Sprint 1 • AUDIO-2: Частотный анализ FFT</p>
     </footer>
   </div>
 </template>

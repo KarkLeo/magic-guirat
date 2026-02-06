@@ -80,23 +80,70 @@
 import { computed } from 'vue'
 import { useAudioCapture } from '@/composables/useAudioCapture'
 
-// Используем composable для работы с аудио
-const {
-  isCapturing,
-  isRequestingPermission,
-  error,
-  audioLevel,
-  hasError,
-  startCapture,
-  stopCapture,
-} = useAudioCapture()
+// Props (если переданы, используем их вместо внутреннего useAudioCapture)
+const props = defineProps({
+  isCapturing: {
+    type: Boolean,
+    default: undefined,
+  },
+  isRequestingPermission: {
+    type: Boolean,
+    default: undefined,
+  },
+  error: {
+    type: String,
+    default: undefined,
+  },
+  hasError: {
+    type: Boolean,
+    default: undefined,
+  },
+  audioLevel: {
+    type: Number,
+    default: undefined,
+  },
+})
+
+// Emits
+const emit = defineEmits(['toggle-capture'])
+
+// Если props не переданы, используем внутренний useAudioCapture
+const internalAudio = props.isCapturing === undefined ? useAudioCapture() : null
+
+// Используем либо props, либо internal состояния
+const isCapturing = computed(() =>
+  props.isCapturing !== undefined ? props.isCapturing : internalAudio?.isCapturing.value,
+)
+const isRequestingPermission = computed(() =>
+  props.isRequestingPermission !== undefined
+    ? props.isRequestingPermission
+    : internalAudio?.isRequestingPermission.value,
+)
+const error = computed(() =>
+  props.error !== undefined ? props.error : internalAudio?.error.value,
+)
+const hasError = computed(() =>
+  props.hasError !== undefined ? props.hasError : internalAudio?.hasError.value,
+)
+const audioLevel = computed(() =>
+  props.audioLevel !== undefined ? props.audioLevel : internalAudio?.audioLevel.value,
+)
 
 // Переключение состояния захвата
 const toggleCapture = async () => {
-  if (isCapturing.value) {
-    stopCapture()
-  } else {
-    await startCapture()
+  // Если используем props, emit событие
+  if (props.isCapturing !== undefined) {
+    emit('toggle-capture')
+    return
+  }
+
+  // Иначе используем внутренний useAudioCapture
+  if (internalAudio) {
+    if (internalAudio.isCapturing.value) {
+      internalAudio.stopCapture()
+    } else {
+      await internalAudio.startCapture()
+    }
   }
 }
 
