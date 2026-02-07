@@ -25,15 +25,16 @@ void main() {
 
   // === РЕАЛИСТИЧНАЯ МОДЕЛЬ КОЛЕБАНИЙ С ГАРМОНИКАМИ ===
   // Реальная струна колеблется как суперпозиция нескольких частот (основная + обертоны)
+  // Волна распространяется ВДОЛЬ струны (pos.y — ось длины цилиндра)
 
   // Основная частота (фундаментальная)
-  float wave1 = sin(pos.x * uFrequency + uTime * 0.003 * uSpeed);
+  float wave1 = sin(pos.y * uFrequency + uTime * 0.003 * uSpeed);
 
   // Вторая гармоника (октава выше, меньшая амплитуда)
-  float wave2 = sin(pos.x * uFrequency * 2.0 + uTime * 0.003 * uSpeed * 1.5) * 0.3;
+  float wave2 = sin(pos.y * uFrequency * 2.0 + uTime * 0.003 * uSpeed * 1.5) * 0.3;
 
   // Третья гармоника (квинта, ещё меньшая амплитуда)
-  float wave3 = sin(pos.x * uFrequency * 3.0 + uTime * 0.003 * uSpeed * 2.0) * 0.15;
+  float wave3 = sin(pos.y * uFrequency * 3.0 + uTime * 0.003 * uSpeed * 2.0) * 0.15;
 
   // Суммируем все гармоники для богатого звука
   float combinedWave = wave1 + wave2 + wave3;
@@ -56,13 +57,9 @@ void main() {
 
   // === ПРИМЕНЯЕМ ВОЛНУ К ГЕОМЕТРИИ ===
   // Вертикальное смещение (перпендикулярно струне, в мировых координатах — вверх/вниз)
-  // Так как струна повёрнута на 90° (rotation.z), используем pos.z для вертикали
-  pos.z += combinedWave * envelope;
-
-  // Легкое продольное смещение (вдоль струны) для доп. реализма
-  // Моделирует продольные колебания, которые есть у реальной струны
-  float longitudinal = sin(pos.x * uFrequency * 0.5 + uTime * 0.002 * uSpeed) * 0.02;
-  pos.x += longitudinal * envelope;
+  // Цилиндр: ось Y = длина, ось X/Z = радиус
+  // После rotation.z = 90°: локальная X → мировая Y (вертикаль) ✓
+  pos.x += combinedWave * envelope;
 
   // Передаём интенсивность для fragment shader (для свечения)
   // Используем envelope для синхронизации свечения с колебаниями
