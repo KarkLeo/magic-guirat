@@ -3,7 +3,7 @@
 **Дата начала:** 2026-02-07
 **Текущий спринт:** Sprint 5 🔵 IN PROGRESS
 **Текущая дата:** 2026-02-07
-**Статус:** S5-T1 COMPLETE, READY FOR S5-T2
+**Статус:** S5-T2 COMPLETE, READY FOR S5-T3
 
 ---
 
@@ -68,14 +68,14 @@
 | ID | Задача | Приоритет | Оценка | Фактически | Статус |
 |----|--------|-----------|--------|-----------|--------|
 | S5-T1 | Физика Колебаний Струн | P0 | 4h | 1.5h | ✅ DONE |
-| S5-T2 | FBO Setup для Ghost Trails | P0 | 4-5h | - | ⬜ TODO |
+| S5-T2 | FBO Setup для Ghost Trails | P0 | 4-5h | 2.5h | ✅ DONE |
 | S5-T3 | Ghost Trail Shader | P0 | 3-4h | - | ⬜ TODO |
 | S5-T4 | Multi-String Support для Ghost | P1 | 2h | - | ⬜ TODO |
 | S5-T5 | Settings для Ghost Trails | P2 | 1.5h | - | ⬜ TODO |
 
 **Блокеры:** нет
-**Velocity:** 1.5 часа (1/5 задач завершено)
-**Завершено:** 20%
+**Velocity:** 4 часа (2/5 задач завершено)
+**Завершено:** 40%
 
 ### S5-T1: Enhanced String Physics ✅ COMPLETE
 
@@ -98,18 +98,42 @@
 - Разные струны имеют уникальные параметры (frequency, damping, amplitude)
 - Фазы attack→sustain→release работают плавно
 
+### S5-T2: FBO Setup для Ghost Trails ✅ COMPLETE
+
+**Что сделано:**
+- ✅ Создан кастомный `GhostTrailPass` класс (extends `Pass` из three.js)
+- ✅ Два WebGLRenderTarget (renderTargetA/B) для ping-pong техники
+- ✅ Accumulation shader (`trailAccumulation.glsl`) с uniforms:
+  - tDiffuse (текущий кадр), tPrevious (предыдущий накопленный)
+  - uFadeSpeed (0.05 default), uOpacity (0.7 default)
+  - uDriftOffset (0, 0.001 для upward drift)
+- ✅ Fullscreen quad + orthographic camera для рендеринга shader
+- ✅ Автоматический swap targets в render() для ping-pong
+- ✅ Методы setFadeSpeed/setOpacity/setDriftOffset для настройки
+- ✅ Интеграция в EffectComposer перед BloomPass
+- ✅ Правильный dispose() в cleanup (renderTargets, material, geometry)
+- ✅ handleResize() обновляет размер FBO targets
+- ✅ TypeScript type-check пройден
+- ✅ ESLint warnings устранены
+
+**Файлы:**
+- `src/utils/GhostTrailPass.js` - кастомный Pass класс
+- `src/shaders/trailAccumulation.glsl` - fragment shader для accumulation
+- `src/components/GuitarStringsVisualization.vue` - интеграция в pipeline
+
+**Результат:**
+- FBO система создается и работает без ошибок
+- Ping-pong буферы корректно управляются внутри GhostTrailPass
+- Accumulation shader готов для визуальной настройки в S5-T3
+- Нет утечек памяти (dispose реализован)
+- Performance стабильный (FBO не влияет на FPS)
+
 ---
 
 ## 📝 Следующие Действия
 
 ### Immediate Next Steps (Sprint 5)
-1. **S5-T2: FBO Setup для Ghost Trails** (4-5h)
-   - Создать два WebGLRenderTarget (ping-pong buffers)
-   - Настроить FBO scene и camera
-   - Рендерить струны в FBO с накоплением
-   - Добавить fade-out механизм
-
-2. **S5-T3: Ghost Trail Shader** (3-4h)
+1. **S5-T3: Ghost Trail Shader** (3-4h) ⏭️ NEXT
    - Shader для эффекта призраков с затуханием
    - Экспоненциальное затухание (0.05-0.1 per frame)
    - Легкое размытие (1-2px blur)

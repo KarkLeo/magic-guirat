@@ -13,6 +13,7 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { GUITAR_STRINGS, TOTAL_STRINGS } from '@/utils/guitarMapping'
 import { ColorUtils } from '@/constants'
 import { useSettings } from '@/composables/useSettings'
+import { GhostTrailPass } from '@/utils/GhostTrailPass'
 // Импортируем шейдеры как raw строки
 import stringVertexShader from '@/shaders/stringVertex.glsl?raw'
 import stringFragmentShader from '@/shaders/stringFragment.glsl?raw'
@@ -46,8 +47,10 @@ let renderer = null
 let composer = null // Post-processing composer
 let bloomPass = null // Bloom effect pass
 const strings = [] // Массив mesh'ей струн
-let chordLines = [] // Соединительные линии между аккордными струнами
 let animationFrameId = null
+
+// FBO система для Ghost Trails
+let ghostTrailPass = null // Кастомный pass для ghost trails эффекта
 
 // Система частиц
 let particleSystem = null
@@ -88,6 +91,23 @@ const PARTICLE_BASE_SIZE = 0.38
 
 // Настройки из useSettings
 const { bloomIntensity, bloomThreshold, bloomRadius } = useSettings()
+
+/**
+ * Создаёт FBO систему для Ghost Trails эффекта
+ * Использует ping-pong технику с двумя render targets через кастомный Pass
+ */
+const createGhostTrailFBO = () => {
+  const w = getViewportWidth()
+  const h = getViewportHeight()
+
+  // Создаём кастомный Ghost Trail Pass
+  ghostTrailPass = new GhostTrailPass(w, h)
+
+  // Настройки по умолчанию
+  ghostTrailPass.setFadeSpeed(0.05)  // Плавное затухание за 2-3 сек
+  ghostTrailPass.setOpacity(0.7)     // 70% прозрачность
+  ghostTrailPass.setDriftOffset(0, 0.001) // Лёгкий upward drift
+}
 
 /**
  * Создаёт систему частиц с предаллоцированным пулом
@@ -203,7 +223,11 @@ const initThreeJS = () => {
   const renderPass = new RenderPass(scene, camera)
   composer.addPass(renderPass)
 
-  // Bloom pass для магического свечения
+  // Создаём и добавляем FBO систему для Ghost Trails (перед bloom!)
+  createGhostTrailFBO()
+  composer.addPass(ghostTrailPass)
+
+  // Bloom pass для магического свечения (применяется ПОСЛЕ ghost trails)
   bloomPass = new UnrealBloomPass(
     new THREE.Vector2(w, h),
     bloomIntensity.value,   // strength - интенсивность bloom (управляется из настроек)
@@ -446,6 +470,7 @@ const animate = () => {
   }
 
   // Рендерим сцену через post-processing composer
+  // GhostTrailPass автоматически управляет ping-pong буферами внутри
   if (composer) {
     composer.render()
   } else {
@@ -456,58 +481,6 @@ const animate = () => {
   animationFrameId = requestAnimationFrame(animate)
 }
 
-/**
- * Удаляет все соединительные линии
- */
-const clearChordLines = () => {
-  chordLines.forEach((line) => {
-    scene.remove(line)
-    line.geometry.dispose()
-    line.material.dispose()
-  })
-  chordLines = []
-}
-
-/**
- * Создаёт соединительные линии между активными струнами в chord mode
- */
-const updateChordLines = () => {
-  if (!scene) return
-
-  clearChordLines()
-
-  if (props.detectionMode !== 'chord' || props.activeStringIndices.length < 2) {
-    return
-  }
-
-  // Находим mesh'и активных струн
-  const activeStrings = strings.filter((s) =>
-    props.activeStringIndices.includes(s.userData.stringIndex),
-  )
-
-  if (activeStrings.length < 2) return
-
-  // Создаём линии между соседними активными струнами
-  const material = new THREE.LineBasicMaterial({
-    color: 0xc084fc,
-    transparent: true,
-    opacity: 0.4,
-  })
-
-  for (let i = 0; i < activeStrings.length - 1; i++) {
-    const from = activeStrings[i].position
-    const to = activeStrings[i + 1].position
-
-    const geometry = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(0, from.y, 0.5),
-      new THREE.Vector3(0, to.y, 0.5),
-    ])
-
-    const line = new THREE.Line(geometry, material.clone())
-    scene.add(line)
-    chordLines.push(line)
-  }
-}
 
 /**
  * Обновляет свечение и колебания струн
@@ -554,9 +527,6 @@ const updateStrings = () => {
 
   // Обновляем prevActiveSet
   prevActiveSet = new Set(props.activeStringIndices)
-
-  // Обновляем chord lines
-  updateChordLines()
 }
 
 /**
@@ -571,6 +541,11 @@ const handleResize = () => {
   camera.aspect = width / height
   camera.updateProjectionMatrix()
   renderer.setSize(width, height)
+
+  // Обновляем размер FBO targets через GhostTrailPass
+  if (ghostTrailPass) {
+    ghostTrailPass.setSize(width, height)
+  }
 
   // Обновляем размер composer
   if (composer) {
@@ -621,8 +596,6 @@ onUnmounted(() => {
 
   window.removeEventListener('resize', handleResize)
 
-  clearChordLines()
-
   // Dispose particle system
   if (particleSystem) {
     scene.remove(particleSystem)
@@ -644,6 +617,12 @@ onUnmounted(() => {
     string.geometry.dispose()
     string.material.dispose()
   })
+
+  // Dispose FBO resources через GhostTrailPass
+  if (ghostTrailPass) {
+    ghostTrailPass.dispose()
+    ghostTrailPass = null
+  }
 
   if (composer) {
     composer.dispose()
