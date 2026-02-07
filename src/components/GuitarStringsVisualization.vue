@@ -228,10 +228,11 @@ const initThreeJS = () => {
  */
 const createStrings = () => {
   const geometry = new THREE.CylinderGeometry(
-    STRING_RADIUS,
-    STRING_RADIUS,
-    STRING_LENGTH,
-    16,
+    STRING_RADIUS,    // radiusTop
+    STRING_RADIUS,    // radiusBottom
+    STRING_LENGTH,    // height
+    16,               // radialSegments (окружность)
+    128,              // heightSegments (вдоль длины) — позволяет изгибаться!
   )
 
   // Создаём струны сверху вниз (6-я -> 1-я)
@@ -250,7 +251,7 @@ const createStrings = () => {
         // Параметры волны (vertex shader)
         uTime: { value: 0.0 },
         uAmplitude: { value: 0.0 }, // Начинаем с 0, обновится при активации
-        uFrequency: { value: 1.0 + index * 0.15 }, // Разная частота для каждой струны
+        uFrequency: { value: 3.0 + index * 0.3 }, // Разная частота для каждой струны (3.0-4.5 = 2-3 волны на струне)
         uDamping: { value: 1.0 + index * 0.08 }, // Более высокие струны затухают быстрее (1.0 - 1.4)
         uAttackTime: { value: 0.0 },
         uSpeed: { value: 1.0 }, // Скорость колебания (можно модулировать по темпу)
