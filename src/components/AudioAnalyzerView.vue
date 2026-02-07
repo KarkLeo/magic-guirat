@@ -64,7 +64,6 @@ const { selectedDeviceId, noiseThreshold } = useSettings()
 const {
   isCapturing,
   isRequestingPermission,
-  error,
   audioLevel,
   hasError,
   startCapture,

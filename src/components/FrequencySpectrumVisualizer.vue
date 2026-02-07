@@ -44,7 +44,6 @@ const analyzer = props.analyserNode
   : null
 
 const {
-  dominantFrequency,
   isAnalyzing,
   startAnalysis,
   stopAnalysis,
