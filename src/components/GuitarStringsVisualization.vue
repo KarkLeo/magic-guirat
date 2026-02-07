@@ -251,8 +251,9 @@ const createStrings = () => {
         uTime: { value: 0.0 },
         uAmplitude: { value: 0.0 }, // Начинаем с 0, обновится при активации
         uFrequency: { value: 1.0 + index * 0.15 }, // Разная частота для каждой струны
-        uDamping: { value: 1.5 },
+        uDamping: { value: 1.0 + index * 0.08 }, // Более высокие струны затухают быстрее (1.0 - 1.4)
         uAttackTime: { value: 0.0 },
+        uSpeed: { value: 1.0 }, // Скорость колебания (можно модулировать по темпу)
         // Параметры цвета (fragment shader)
         uColorStart: { value: colorStart },
         uColorEnd: { value: colorEnd },
@@ -526,7 +527,11 @@ const updateStrings = () => {
       // Активная струна — яркое свечение и колебания
       const intensity = Math.max(0, Math.min(1, intensities[idx] || 0.7))
       userData.targetIntensity = 0.5 + intensity * 1.5 // 0.5 - 2.0
-      userData.targetAmplitude = 0.1 + intensity * 0.4 // 0.1 - 0.5 (амплитуда волны)
+
+      // Более выразительная амплитуда для лучшей видимости волн
+      // Нижние струны (больший индекс) колеблются с большей амплитудой
+      const baseAmplitude = 0.15 + (userData.arrayIndex * 0.05) // 0.15 - 0.4 base
+      userData.targetAmplitude = baseAmplitude + intensity * 0.5 // 0.15 - 0.9 (амплитуда волны)
 
       // Attack: обновляем время начала колебания при появлении новой активной струны
       if (!prevActiveSet.has(idx)) {

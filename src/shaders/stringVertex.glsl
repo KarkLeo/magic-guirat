@@ -1,5 +1,5 @@
 // Vertex Shader для волнообразной деформации струн гитары
-// Sprint 4 Task 2: String Wave Animation with Decay
+// Sprint 5 Task 1: Enhanced String Physics with Harmonics
 
 // Uniforms - параметры, передаваемые из JavaScript
 uniform float uTime;           // Текущее время анимации (мс)
@@ -7,6 +7,7 @@ uniform float uAmplitude;      // Амплитуда колебаний (0.0 - 1
 uniform float uFrequency;      // Частота волны (зависит от ноты)
 uniform float uDamping;        // Коэффициент затухания (1.0 - 2.0)
 uniform float uAttackTime;     // Время начала колебания (мс)
+uniform float uSpeed;          // Скорость колебания (зависит от темпа)
 
 // Varying - передаём во fragment shader
 varying vec2 vUv;              // UV координаты для текстурирования
@@ -19,22 +20,52 @@ void main() {
   // Копируем позицию вершины
   vec3 pos = position;
 
-  // Вычисляем время с момента удара по струне
-  float timeSinceAttack = uTime - uAttackTime;
+  // Вычисляем время с момента удара по струне (в секундах)
+  float timeSinceAttack = max(0.0, (uTime - uAttackTime) * 0.001);
 
-  // Волнообразное смещение вдоль оси струны (x)
-  // sin создаёт волну, зависящую от позиции и времени
-  float wave = sin(pos.x * uFrequency + uTime * 3.0);
+  // === РЕАЛИСТИЧНАЯ МОДЕЛЬ КОЛЕБАНИЙ С ГАРМОНИКАМИ ===
+  // Реальная струна колеблется как суперпозиция нескольких частот (основная + обертоны)
 
-  // Экспоненциальное затухание (как у реальной струны)
-  // exp(-x) создаёт плавное затухание от 1.0 до 0.0
-  float decay = exp(-uDamping * max(0.0, timeSinceAttack * 0.001));
+  // Основная частота (фундаментальная)
+  float wave1 = sin(pos.x * uFrequency + uTime * 0.003 * uSpeed);
 
-  // Применяем волну с затуханием к позиции Y (вертикальное смещение)
-  pos.y += uAmplitude * wave * decay;
+  // Вторая гармоника (октава выше, меньшая амплитуда)
+  float wave2 = sin(pos.x * uFrequency * 2.0 + uTime * 0.003 * uSpeed * 1.5) * 0.3;
+
+  // Третья гармоника (квинта, ещё меньшая амплитуда)
+  float wave3 = sin(pos.x * uFrequency * 3.0 + uTime * 0.003 * uSpeed * 2.0) * 0.15;
+
+  // Суммируем все гармоники для богатого звука
+  float combinedWave = wave1 + wave2 + wave3;
+
+  // === ТРЁХФАЗНАЯ МОДЕЛЬ ENVELOPE (ATTACK → SUSTAIN → RELEASE) ===
+
+  // Attack phase: быстрый рост (0 → 1 за ~50ms)
+  float attackDuration = 0.05;
+  float attackPhase = smoothstep(0.0, attackDuration, timeSinceAttack);
+
+  // Sustain + Release phase: экспоненциальное затухание
+  // Для гитарных струн характерно медленное затухание (2-4 секунды)
+  float sustainDecay = exp(-uDamping * timeSinceAttack);
+
+  // Комбинированная envelope: attack * sustain
+  // Это даёт естественный профиль:
+  // - Быстрый рост в начале
+  // - Плавное затухание после пика
+  float envelope = attackPhase * sustainDecay * uAmplitude;
+
+  // === ПРИМЕНЯЕМ ВОЛНУ К ГЕОМЕТРИИ ===
+  // Вертикальное смещение (перпендикулярно струне)
+  pos.y += combinedWave * envelope;
+
+  // Легкое продольное смещение (вдоль струны) для доп. реализма
+  // Моделирует продольные колебания, которые есть у реальной струны
+  float longitudinal = sin(pos.x * uFrequency * 0.5 + uTime * 0.002 * uSpeed) * 0.02;
+  pos.x += longitudinal * envelope;
 
   // Передаём интенсивность для fragment shader (для свечения)
-  vIntensity = decay;
+  // Используем envelope для синхронизации свечения с колебаниями
+  vIntensity = sustainDecay;
 
   // Финальная трансформация позиции
   gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
