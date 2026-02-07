@@ -4,7 +4,7 @@
       <div class="settings-panel">
         <div class="settings-header">
           <h2 class="settings-title">Настройки</h2>
-          <button class="settings-close" @click="$emit('close')" aria-label="Закрыть">
+          <button class="settings-close" aria-label="Закрыть" @click="$emit('close')">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path d="M5 5L15 15M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             </svg>
@@ -37,8 +37,8 @@
               <span class="settings-value">{{ formattedThreshold }}</span>
             </label>
             <input
-              type="range"
               v-model.number="noiseThreshold"
+              type="range"
               min="0.001"
               max="0.05"
               step="0.001"
@@ -57,8 +57,8 @@
               <span class="settings-value">{{ formattedBloom }}</span>
             </label>
             <input
-              type="range"
               v-model.number="bloomIntensity"
+              type="range"
               min="0.5"
               max="3.0"
               step="0.1"
@@ -77,8 +77,8 @@
               <span class="settings-value">{{ formattedThresholdValue }}</span>
             </label>
             <input
-              type="range"
               v-model.number="bloomThreshold"
+              type="range"
               min="0.0"
               max="1.0"
               step="0.05"
@@ -97,8 +97,8 @@
               <span class="settings-value">{{ formattedRadiusValue }}</span>
             </label>
             <input
-              type="range"
               v-model.number="bloomRadius"
+              type="range"
               min="0.0"
               max="1.0"
               step="0.05"

@@ -45,7 +45,7 @@ let camera = null
 let renderer = null
 let composer = null // Post-processing composer
 let bloomPass = null // Bloom effect pass
-let strings = [] // Массив mesh'ей струн
+const strings = [] // Массив mesh'ей струн
 let chordLines = [] // Соединительные линии между аккордными струнами
 let animationFrameId = null
 
@@ -67,7 +67,7 @@ let nextParticleIndex = 0
 let prevActiveSet = new Set()
 let lastFrameTime = 0
 // Stream accumulator: accumulated fractional particles per string array index
-let streamAccumulators = new Float32Array(TOTAL_STRINGS)
+const streamAccumulators = new Float32Array(TOTAL_STRINGS)
 
 // Размеры — используем viewport
 const getViewportWidth = () => window.innerWidth
