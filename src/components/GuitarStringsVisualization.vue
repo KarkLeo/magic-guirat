@@ -529,10 +529,10 @@ const updateStrings = () => {
       const intensity = Math.max(0, Math.min(1, intensities[idx] || 0.7))
       userData.targetIntensity = 0.5 + intensity * 1.5 // 0.5 - 2.0
 
-      // Элегантная амплитуда для плавных волн
+      // Утончённая амплитуда для изящных волн
       // Нижние струны (больший индекс) колеблются с большей амплитудой
-      const baseAmplitude = 0.05 + (userData.arrayIndex * 0.017) // 0.05 - 0.135 base
-      userData.targetAmplitude = baseAmplitude + intensity * 0.167 // 0.05 - 0.3 (амплитуда волны, уменьшена в 3 раза)
+      const baseAmplitude = 0.025 + (userData.arrayIndex * 0.0085) // 0.025 - 0.0675 base
+      userData.targetAmplitude = baseAmplitude + intensity * 0.0835 // 0.025 - 0.15 (амплитуда волны, уменьшена в 6 раз)
 
       // Attack: обновляем время начала колебания при появлении новой активной струны
       if (!prevActiveSet.has(idx)) {
