@@ -11,6 +11,9 @@ Vue 3 + Vite web app for real-time guitar visualization. Captures audio via micr
 - **Confidence threshold**: 0.3 minimum for string mapping
 - **Essentia.js**: installed but disabled (WASM loading issues)
 
+## Workflows
+- **Commit Workflow** - см. память `commit_workflow` - стандартный процесс проверки и коммита кода (type-check → lint → build → tests → docs → commit)
+
 ## File Map
 - `src/composables/useFrequencyAnalyzer.js` - YIN pitch detection + spectrum data
 - `src/composables/useAudioCapture.js` - microphone capture, AudioContext
