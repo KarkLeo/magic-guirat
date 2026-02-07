@@ -28,13 +28,13 @@ void main() {
   // Волна распространяется ВДОЛЬ струны (pos.y — ось длины цилиндра)
 
   // Основная частота (фундаментальная)
-  float wave1 = sin(pos.y * uFrequency + uTime * 0.003 * uSpeed);
+  float wave1 = sin(pos.y * uFrequency + uTime * 0.009 * uSpeed);
 
   // Вторая гармоника (октава выше, меньшая амплитуда)
-  float wave2 = sin(pos.y * uFrequency * 2.0 + uTime * 0.003 * uSpeed * 1.5) * 0.3;
+  float wave2 = sin(pos.y * uFrequency * 2.0 + uTime * 0.009 * uSpeed * 1.5) * 0.3;
 
   // Третья гармоника (квинта, ещё меньшая амплитуда)
-  float wave3 = sin(pos.y * uFrequency * 3.0 + uTime * 0.003 * uSpeed * 2.0) * 0.15;
+  float wave3 = sin(pos.y * uFrequency * 3.0 + uTime * 0.009 * uSpeed * 2.0) * 0.15;
 
   // Суммируем все гармоники для богатого звука
   float combinedWave = wave1 + wave2 + wave3;

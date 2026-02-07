@@ -74,7 +74,7 @@ const getViewportWidth = () => window.innerWidth
 const getViewportHeight = () => window.innerHeight
 
 // Параметры струн
-const STRING_LENGTH = 8
+const STRING_LENGTH = 20 // Увеличено для струн во всю ширину экрана
 const STRING_RADIUS = 0.05
 const STRING_SPACING = 1.2
 
@@ -172,7 +172,7 @@ const initThreeJS = () => {
     0.1, // Near
     1000, // Far
   )
-  camera.position.set(0, 0, 12)
+  camera.position.set(0, 0, 18) // Отодвинута дальше для струн длиной 20 единиц
   camera.lookAt(0, 0, 0)
 
   // Renderer
@@ -251,7 +251,7 @@ const createStrings = () => {
         // Параметры волны (vertex shader)
         uTime: { value: 0.0 },
         uAmplitude: { value: 0.0 }, // Начинаем с 0, обновится при активации
-        uFrequency: { value: 0.3 + index * 0.03 }, // Разная частота для каждой струны (0.3-0.45 = длинные плавные волны)
+        uFrequency: { value: 0.15 + index * 0.015 }, // Разная частота для каждой струны (0.15-0.225 = очень длинные плавные волны)
         uDamping: { value: 1.0 + index * 0.08 }, // Более высокие струны затухают быстрее (1.0 - 1.4)
         uAttackTime: { value: 0.0 },
         uSpeed: { value: 1.0 }, // Скорость колебания (можно модулировать по темпу)
