@@ -8,29 +8,22 @@ const isSettingsOpen = ref(false)
 
 <template>
   <div class="app-container">
-    <header class="app-header" role="banner">
-      <div class="app-header-top">
-        <div class="app-header-spacer"></div>
-        <h1 class="app-title">🎸 Magic Guitar</h1>
-        <button class="settings-btn" @click="isSettingsOpen = true" aria-label="Настройки">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-          </svg>
-        </button>
-      </div>
-      <p class="app-subtitle">Захват и визуализация игры на гитаре</p>
-    </header>
+    <!-- Three.js + audio orchestrator (fullscreen) -->
+    <AudioAnalyzerView />
 
+    <!-- Logo overlay -->
+    <h1 class="app-logo">Magic Guitar</h1>
+
+    <!-- Settings button overlay -->
+    <button class="settings-btn" @click="isSettingsOpen = true" aria-label="Настройки">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+
+    <!-- Settings modal -->
     <SettingsPanel :is-open="isSettingsOpen" @close="isSettingsOpen = false" />
-
-    <main class="app-main" role="main">
-      <AudioAnalyzerView />
-    </main>
-
-    <footer class="app-footer" role="contentinfo">
-      <p>Sprint 1 MVP • 100% завершено 🎸✨🎉</p>
-    </footer>
   </div>
 </template>
 
@@ -48,158 +41,72 @@ body {
   -moz-osx-font-smoothing: grayscale;
   margin: 0;
   padding: 0;
-  overflow-x: hidden;
+  overflow: hidden;
   color: #fff;
-
-  /* Многослойный градиент для глубины */
-  background:
-    radial-gradient(ellipse at top, rgba(102, 126, 234, 0.15) 0%, transparent 60%),
-    radial-gradient(ellipse at bottom, rgba(240, 147, 251, 0.1) 0%, transparent 60%),
-    linear-gradient(135deg, #0f0c29 0%, #302b63 40%, #24243e 70%, #190e33 100%);
-  background-attachment: fixed;
+  background: #0f0c29;
 }
 
 #app {
-  min-height: 100vh;
+  width: 100vw;
+  height: 100vh;
   position: relative;
-}
-
-/* Subtle animated glow effect */
-#app::before {
-  content: '';
-  position: fixed;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(
-    circle at center,
-    rgba(102, 126, 234, 0.08) 0%,
-    transparent 50%
-  );
-  animation: glow-pulse 8s ease-in-out infinite;
-  pointer-events: none;
-  z-index: 0;
-}
-
-@keyframes glow-pulse {
-  0%, 100% {
-    opacity: 0.5;
-    transform: translate(0, 0) scale(1);
-  }
-  50% {
-    opacity: 0.8;
-    transform: translate(10px, 10px) scale(1.05);
-  }
 }
 
 .app-container {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  padding: 2rem;
   position: relative;
-  z-index: 1;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
 }
 
-.app-header {
-  text-align: center;
-  margin-bottom: 3rem;
-  animation: fade-in-down 0.8s ease-out;
+/* Logo — top left overlay */
+.app-logo {
+  position: fixed;
+  top: 1.5rem;
+  left: 1.5rem;
+  z-index: 10;
+  font-size: 1.6rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #667eea 0%, #a855f7 50%, #f093fb 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 20px rgba(102, 126, 234, 0.5));
+  letter-spacing: -0.02em;
+  pointer-events: none;
+  user-select: none;
 }
 
-.app-header-top {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 0.75rem;
-}
-
-.app-header-spacer {
-  width: 40px;
-}
-
+/* Settings button — top right overlay */
 .settings-btn {
-  width: 40px;
-  height: 40px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(168, 181, 255, 0.15);
-  border-radius: 10px;
-  color: rgba(168, 181, 255, 0.6);
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 10;
+  width: 44px;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(168, 181, 255, 0.2);
+  border-radius: 50%;
+  color: rgba(168, 181, 255, 0.7);
   padding: 0;
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  backdrop-filter: blur(10px);
 }
 
 .settings-btn:hover {
   color: #e0d6f6;
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(168, 181, 255, 0.3);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(168, 181, 255, 0.4);
 }
 
-@keyframes fade-in-down {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.app-title {
-  font-size: 3.5rem;
-  font-weight: 800;
-  background: linear-gradient(135deg, #667eea 0%, #a855f7 50%, #f093fb 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin: 0;
-  filter: drop-shadow(0 0 40px rgba(102, 126, 234, 0.6));
-  letter-spacing: -0.02em;
-  flex: 1;
-}
-
-.app-subtitle {
-  font-size: 1.35rem;
-  color: #c5b4e3;
-  font-weight: 300;
-  text-shadow: 0 2px 10px rgba(197, 180, 227, 0.3);
-  letter-spacing: 0.02em;
-}
-
-.app-main {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.app-footer {
-  text-align: center;
-  margin-top: 3rem;
-  padding-top: 2rem;
-  border-top: 1px solid rgba(168, 181, 255, 0.15);
-  color: #a8b5ff;
-  font-size: 0.875rem;
-  opacity: 0.8;
-  animation: fade-in-up 0.8s ease-out 0.3s backwards;
-}
-
-@keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 0.8;
-    transform: translateY(0);
-  }
+.settings-btn:focus-visible {
+  outline: 3px solid #a855f7;
+  outline-offset: 2px;
 }
 
 /* Reduced motion support */
@@ -211,33 +118,26 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-
-  #app::before {
-    animation: none;
-  }
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-  .app-container {
-    padding: 1rem;
+  .app-logo {
+    font-size: 1.3rem;
+    top: 1rem;
+    left: 1rem;
   }
 
-  .app-header {
-    margin-bottom: 2rem;
+  .settings-btn {
+    width: 38px;
+    height: 38px;
+    top: 1rem;
+    right: 1rem;
   }
 
-  .app-title {
-    font-size: 2.5rem;
-  }
-
-  .app-subtitle {
-    font-size: 1.1rem;
-  }
-
-  .app-footer {
-    font-size: 0.75rem;
-    margin-top: 2rem;
+  .settings-btn svg {
+    width: 18px;
+    height: 18px;
   }
 }
 </style>

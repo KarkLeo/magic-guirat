@@ -4,33 +4,31 @@
     <AudioCaptureButton
       :is-capturing="isCapturing"
       :is-requesting-permission="isRequestingPermission"
-      :error="error"
       :has-error="hasError"
-      :audio-level="audioLevel"
       @toggle-capture="toggleCapture"
     />
 
-    <!-- Отображение аккорда -->
+    <!-- Визуализация струн гитары — ВСЕГДА рендерим (избегаем пересоздания Three.js) -->
+    <GuitarStringsVisualization
+      :active-string-indices="isCapturing ? activeStringIndices : []"
+      :string-intensities="isCapturing ? stringIntensities : {}"
+      :detection-mode="detectionMode"
+      :is-active="isCapturing"
+    />
+
+    <!-- Отображение аккорда / ноты -->
     <transition name="fade">
       <ChordNameDisplay
-        v-if="isCapturing && isChordDetected"
+        v-if="isCapturing && (isChordDetected || detectedNote.note)"
         :chord="currentChord"
         :candidates="chordCandidates"
-      />
-    </transition>
-
-    <!-- Визуализация струн гитары -->
-    <transition name="fade">
-      <GuitarStringsVisualization
-        v-if="isCapturing"
-        :active-string-indices="activeStringIndices"
-        :string-intensities="stringIntensities"
+        :detected-note="detectedNote"
+        :pitch-confidence="pitchConfidence"
         :detection-mode="detectionMode"
-        :is-active="isCapturing"
       />
     </transition>
 
-    <!-- Визуализатор спектра (показывается только при активном захвате) -->
+    <!-- Визуализатор спектра -->
     <transition name="fade">
       <FrequencySpectrumVisualizer
         v-if="isCapturing && analyserNode"
@@ -76,8 +74,6 @@ const {
 } = useAudioCapture()
 
 // Получаем AnalyserNode для визуализатора
-// Зависимость от isCapturing нужна для реактивности: getAnalyserNode() возвращает
-// не-реактивную переменную, поэтому без isCapturing computed не обновится.
 const analyserNode = computed(() => isCapturing.value ? getAnalyserNode() : null)
 
 // Используем frequency analyzer для pitch detection (YIN)
@@ -118,7 +114,7 @@ const detectionMode = computed(() => {
   return 'single'
 })
 
-// Определение активной струны для single mode (как раньше)
+// Определение активной струны для single mode
 const singleActiveStringIndex = computed(() => {
   const note = detectedNote.value
   const pitch = detectedPitch.value
@@ -137,12 +133,11 @@ const singleActiveStringIndex = computed(() => {
   return activeString ? activeString.string.index : null
 })
 
-// Активные индексы струн (Array) — для chord и single mode
+// Активные индексы струн (Array)
 const activeStringIndices = computed(() => {
   if (detectionMode.value === 'chord') {
     return detectedStrings.value
   }
-  // Single mode
   const idx = singleActiveStringIndex.value
   return idx !== null ? [idx] : []
 })
@@ -158,7 +153,6 @@ const stringIntensities = computed(() => {
       intensities[gs.index] = pc >= 0 ? (chromagram[pc] || 0) : 0
     }
   } else {
-    // Single mode — интенсивность на основе pitchConfidence и audioLevel
     const idx = singleActiveStringIndex.value
     const confidence = pitchConfidence.value
     const level = audioLevel.value || 0
@@ -228,43 +222,21 @@ onUnmounted(() => {
 
 <style scoped>
 .audio-analyzer-view {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-  width: 100%;
-  max-width: 900px;
+  position: fixed;
+  inset: 0;
 }
 
-/* Transition для появления спектра */
+/* Transition для появления/исчезновения overlay элементов */
 .fade-enter-active {
-  transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: opacity 0.4s ease;
 }
 
 .fade-leave-active {
-  transition: all 1.2s cubic-bezier(0.4, 0, 0.6, 1);
+  transition: opacity 0.8s ease;
 }
 
-.fade-enter-from {
-  opacity: 0;
-  transform: translateY(30px) scale(0.95);
-}
-
+.fade-enter-from,
 .fade-leave-to {
   opacity: 0;
-  transform: translateY(-15px) scale(0.98);
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .audio-analyzer-view {
-    gap: 1.5rem;
-    max-width: 100%;
-  }
-}
-
-@media (max-width: 480px) {
-  .audio-analyzer-view {
-    gap: 1rem;
-  }
 }
 </style>

@@ -1,27 +1,33 @@
 <template>
   <div class="chord-display">
     <transition name="chord-swap" mode="out-in">
-      <div :key="chord?.displayName || 'none'" class="chord-content">
-        <!-- Основной аккорд -->
+      <!-- Chord mode -->
+      <div v-if="detectionMode === 'chord' && chord" :key="chord?.displayName || 'chord'" class="chord-content">
         <div class="chord-name">
           <span class="chord-root">{{ chord?.rootName || '' }}</span>
           <span class="chord-suffix">{{ chordSuffix }}</span>
         </div>
 
-        <!-- Confidence bar -->
         <div class="confidence-bar">
           <div class="confidence-fill" :style="{ width: confidencePercent + '%' }"></div>
         </div>
 
-        <!-- Альтернативные аккорды -->
         <div v-if="candidates.length > 0" class="chord-alternatives">
-          <span
-            v-for="(alt, i) in candidates"
-            :key="i"
-            class="chord-alt"
-          >
+          <span v-for="(alt, i) in candidates" :key="i" class="chord-alt">
             {{ alt.displayName }}
           </span>
+        </div>
+      </div>
+
+      <!-- Single note mode -->
+      <div v-else-if="detectionMode === 'single' && detectedNote?.note" :key="detectedNote.note + detectedNote.octave" class="chord-content">
+        <div class="chord-name">
+          <span class="chord-root">{{ detectedNote.note }}</span>
+          <span class="chord-suffix note-octave">{{ detectedNote.octave }}</span>
+        </div>
+
+        <div class="confidence-bar">
+          <div class="confidence-fill" :style="{ width: Math.round(pitchConfidence * 100) + '%' }"></div>
         </div>
       </div>
     </transition>
@@ -41,6 +47,18 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  detectedNote: {
+    type: Object,
+    default: () => ({ note: '', octave: 0, cents: 0 }),
+  },
+  pitchConfidence: {
+    type: Number,
+    default: 0,
+  },
+  detectionMode: {
+    type: String,
+    default: 'single',
+  },
 })
 
 const chordSuffix = computed(() => {
@@ -49,34 +67,34 @@ const chordSuffix = computed(() => {
 })
 
 const confidencePercent = computed(() => {
-  if (!props.chord) return 0
-  return Math.round(Math.max(0, Math.min(1, props.chord.score)) * 100)
+  if (props.detectionMode === 'chord') {
+    if (!props.chord) return 0
+    return Math.round(Math.max(0, Math.min(1, props.chord.score)) * 100)
+  }
+  return Math.round(Math.max(0, Math.min(1, props.pitchConfidence)) * 100)
 })
 </script>
 
 <style scoped>
 .chord-display {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  padding: 1.5rem;
-  background: rgba(15, 12, 41, 0.7);
-  border-radius: 16px;
-  border: 1px solid rgba(168, 181, 255, 0.2);
-  backdrop-filter: blur(12px);
+  position: fixed;
+  top: 5rem;
+  left: 1.5rem;
+  z-index: 10;
+  pointer-events: none;
 }
 
 .chord-content {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
+  align-items: flex-start;
+  gap: 0.5rem;
 }
 
 .chord-name {
   display: flex;
   align-items: baseline;
-  gap: 0.15em;
+  gap: 0.1em;
 }
 
 .chord-root {
@@ -87,6 +105,7 @@ const confidencePercent = computed(() => {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   line-height: 1;
+  filter: drop-shadow(0 2px 8px rgba(192, 132, 252, 0.5));
 }
 
 .chord-suffix {
@@ -97,11 +116,17 @@ const confidencePercent = computed(() => {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   line-height: 1;
+  filter: drop-shadow(0 2px 8px rgba(168, 85, 247, 0.4));
+}
+
+.note-octave {
+  font-size: 1.6rem;
+  opacity: 0.7;
 }
 
 .confidence-bar {
-  width: 120px;
-  height: 4px;
+  width: 100px;
+  height: 3px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 2px;
   overflow: hidden;
@@ -120,9 +145,10 @@ const confidencePercent = computed(() => {
 }
 
 .chord-alt {
-  font-size: 0.85rem;
-  color: rgba(192, 132, 252, 0.5);
+  font-size: 0.8rem;
+  color: rgba(192, 132, 252, 0.4);
   font-weight: 400;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 
 /* Transition для смены аккорда */
@@ -131,7 +157,7 @@ const confidencePercent = computed(() => {
 }
 
 .chord-swap-leave-active {
-  transition: all 1s cubic-bezier(0.4, 0, 0.6, 1);
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.6, 1);
 }
 
 .chord-swap-enter-from {
@@ -147,28 +173,19 @@ const confidencePercent = computed(() => {
 /* Responsive */
 @media (max-width: 768px) {
   .chord-display {
-    padding: 1rem;
+    top: 4rem;
+    left: 1rem;
   }
 
   .chord-root {
-    font-size: 2.5rem;
+    font-size: 2.2rem;
   }
 
   .chord-suffix {
-    font-size: 1.4rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .chord-display {
-    padding: 0.75rem;
+    font-size: 1.3rem;
   }
 
-  .chord-root {
-    font-size: 2rem;
-  }
-
-  .chord-suffix {
+  .note-octave {
     font-size: 1.2rem;
   }
 }

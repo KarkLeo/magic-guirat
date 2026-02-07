@@ -69,9 +69,9 @@ let lastFrameTime = 0
 // Stream accumulator: accumulated fractional particles per string array index
 let streamAccumulators = new Float32Array(TOTAL_STRINGS)
 
-// Размеры
-const CANVAS_WIDTH = 800
-const CANVAS_HEIGHT = 400
+// Размеры — используем viewport
+const getViewportWidth = () => window.innerWidth
+const getViewportHeight = () => window.innerHeight
 
 // Параметры струн
 const STRING_LENGTH = 8
@@ -164,9 +164,11 @@ const initThreeJS = () => {
   scene.background = new THREE.Color(0x0f0c29) // Темный фон
 
   // Camera
+  const w = getViewportWidth()
+  const h = getViewportHeight()
   camera = new THREE.PerspectiveCamera(
     45, // FOV
-    CANVAS_WIDTH / CANVAS_HEIGHT, // Aspect
+    w / h, // Aspect
     0.1, // Near
     1000, // Far
   )
@@ -179,7 +181,7 @@ const initThreeJS = () => {
     antialias: true,
     alpha: false,
   })
-  renderer.setSize(CANVAS_WIDTH, CANVAS_HEIGHT)
+  renderer.setSize(w, h)
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
   // Освещение
@@ -203,7 +205,7 @@ const initThreeJS = () => {
 
   // Bloom pass для магического свечения
   bloomPass = new UnrealBloomPass(
-    new THREE.Vector2(CANVAS_WIDTH, CANVAS_HEIGHT),
+    new THREE.Vector2(w, h),
     bloomIntensity.value,   // strength - интенсивность bloom (управляется из настроек)
     bloomRadius.value,      // radius - радиус размытия (управляется из настроек)
     bloomThreshold.value    // threshold - порог яркости для bloom (управляется из настроек)
@@ -557,11 +559,8 @@ const updateStrings = () => {
 const handleResize = () => {
   if (!camera || !renderer) return
 
-  const container = canvasRef.value?.parentElement
-  if (!container) return
-
-  const width = Math.min(container.clientWidth, CANVAS_WIDTH)
-  const height = CANVAS_HEIGHT
+  const width = getViewportWidth()
+  const height = getViewportHeight()
 
   camera.aspect = width / height
   camera.updateProjectionMatrix()
@@ -653,38 +652,14 @@ onUnmounted(() => {
 
 <style scoped>
 .guitar-visualization {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 1.5rem;
-  background: rgba(15, 12, 41, 0.6);
-  border-radius: 16px;
-  border: 1px solid rgba(168, 181, 255, 0.2);
-  backdrop-filter: blur(10px);
+  position: fixed;
+  inset: 0;
+  z-index: 0;
 }
 
 .visualization-canvas {
   display: block;
-  max-width: 100%;
-  height: auto;
-  border-radius: 8px;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .guitar-visualization {
-    padding: 1rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .guitar-visualization {
-    padding: 0.75rem;
-  }
-
-  .visualization-canvas {
-    border-radius: 6px;
-  }
+  width: 100%;
+  height: 100%;
 }
 </style>
