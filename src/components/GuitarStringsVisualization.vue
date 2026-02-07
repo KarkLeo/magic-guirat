@@ -251,7 +251,7 @@ const createStrings = () => {
         // Параметры волны (vertex shader)
         uTime: { value: 0.0 },
         uAmplitude: { value: 0.0 }, // Начинаем с 0, обновится при активации
-        uFrequency: { value: 3.0 + index * 0.3 }, // Разная частота для каждой струны (3.0-4.5 = 2-3 волны на струне)
+        uFrequency: { value: 0.3 + index * 0.03 }, // Разная частота для каждой струны (0.3-0.45 = длинные плавные волны)
         uDamping: { value: 1.0 + index * 0.08 }, // Более высокие струны затухают быстрее (1.0 - 1.4)
         uAttackTime: { value: 0.0 },
         uSpeed: { value: 1.0 }, // Скорость колебания (можно модулировать по темпу)
@@ -529,10 +529,10 @@ const updateStrings = () => {
       const intensity = Math.max(0, Math.min(1, intensities[idx] || 0.7))
       userData.targetIntensity = 0.5 + intensity * 1.5 // 0.5 - 2.0
 
-      // Более выразительная амплитуда для лучшей видимости волн
+      // Элегантная амплитуда для плавных волн
       // Нижние струны (больший индекс) колеблются с большей амплитудой
-      const baseAmplitude = 0.15 + (userData.arrayIndex * 0.05) // 0.15 - 0.4 base
-      userData.targetAmplitude = baseAmplitude + intensity * 0.5 // 0.15 - 0.9 (амплитуда волны)
+      const baseAmplitude = 0.05 + (userData.arrayIndex * 0.017) // 0.05 - 0.135 base
+      userData.targetAmplitude = baseAmplitude + intensity * 0.167 // 0.05 - 0.3 (амплитуда волны, уменьшена в 3 раза)
 
       // Attack: обновляем время начала колебания при появлении новой активной струны
       if (!prevActiveSet.has(idx)) {
