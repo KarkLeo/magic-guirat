@@ -222,6 +222,8 @@ const initThreeJS = () => {
   composer.addPass(renderPass)
 
   // Создаём и добавляем FBO систему для Ghost Trails (перед bloom!)
+  // Multi-String Support: GhostTrailPass получает полный кадр со всеми струнами
+  // и накапливает их вместе, сохраняя индивидуальные цвета каждой струны
   createGhostTrailFBO()
   composer.addPass(ghostTrailPass)
 
@@ -469,6 +471,8 @@ const animate = () => {
 
   // Рендерим сцену через post-processing composer
   // GhostTrailPass автоматически управляет ping-pong буферами внутри
+  // Multi-String Support: все активные струны рендерятся через RenderPass,
+  // и GhostTrailPass накапливает их вместе с сохранением индивидуальных цветов
   if (composer) {
     composer.render()
   } else {
