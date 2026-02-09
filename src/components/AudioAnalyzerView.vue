@@ -1,5 +1,8 @@
 <template>
   <div class="audio-analyzer-view">
+    <!-- Фоновый слой (частицы, туманности, градиент) -->
+    <BackgroundLayer :rms-level="audioLevel" />
+
     <!-- Кнопка захвата звука -->
     <AudioCaptureButton
       :is-capturing="isCapturing"
@@ -53,6 +56,7 @@ import { useSettings } from '@/composables/useSettings'
 import { getActiveString, GUITAR_STRINGS } from '@/utils/guitarMapping'
 import { noteNameToPitchClass } from '@/utils/noteUtils'
 import AudioCaptureButton from './AudioCaptureButton.vue'
+import BackgroundLayer from './BackgroundLayer.vue'
 import GuitarStringsVisualization from './GuitarStringsVisualization.vue'
 import FrequencySpectrumVisualizer from './FrequencySpectrumVisualizer.vue'
 import ChordNameDisplay from './ChordNameDisplay.vue'
