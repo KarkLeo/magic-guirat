@@ -19,6 +19,8 @@ import stringVertexShader from '@/shaders/stringVertex.glsl?raw'
 import stringFragmentShader from '@/shaders/stringFragment.glsl?raw'
 import starVertexShader from '@/shaders/starVertex.glsl?raw'
 import starFragmentShader from '@/shaders/starFragment.glsl?raw'
+import nebulaVertexShader from '@/shaders/nebulaVertex.glsl?raw'
+import nebulaFragmentShader from '@/shaders/nebulaFragment.glsl?raw'
 
 const props = defineProps({
   activeStringIndices: {
@@ -36,6 +38,11 @@ const props = defineProps({
   isActive: {
     type: Boolean,
     default: false,
+  },
+  // S6-T5: Audio reactivity для фоновых эффектов
+  rmsLevel: {
+    type: Number,
+    default: 0,
   },
 })
 
@@ -60,6 +67,12 @@ let starGeometry = null
 let starMaterial = null
 const NUM_STARS = 800
 const STAR_SPREAD = 60 // Радиус распределения
+
+// S6-T3: Nebula meshes
+const nebulae = [] // Массив {mesh, baseScale, breathSpeed, breathPhase}
+
+// S6-T4: Grid lines
+let gridLines = null
 
 // Система частиц
 let particleSystem = null
@@ -245,8 +258,10 @@ const initThreeJS = () => {
   )
   composer.addPass(bloomPass)
 
-  // S6-T2: Создаём фоновые звёзды
-  createStarParticles()
+  // S6: Фоновые эффекты (рендерятся за струнами)
+  createStarParticles()  // S6-T2: Звёзды
+  createNebulae()        // S6-T3: Туманности
+  createGridLines()      // S6-T4: Сетка
 
   // Создаём струны
   createStrings()
@@ -280,12 +295,12 @@ const createStarParticles = () => {
     positions[i * 3 + 1] = Math.sin(theta) * radius
     positions[i * 3 + 2] = z
 
-    // Яркость: большинство тусклых, некоторые яркие
+    // Яркость: большинство тусклых, некоторые чуть ярче (космическая пыль)
     const brightness = Math.random()
-    alphas[i] = brightness < 0.7 ? 0.4 + Math.random() * 0.3 : 0.8 + Math.random() * 0.2
+    alphas[i] = brightness < 0.8 ? 0.15 + Math.random() * 0.2 : 0.4 + Math.random() * 0.3
 
-    // Размеры: 1.5-5px
-    sizes[i] = brightness < 0.7 ? 1.5 + Math.random() * 1.5 : 3.0 + Math.random() * 2.0
+    // Размеры: 1-3px (мелкие точки)
+    sizes[i] = brightness < 0.8 ? 1.0 + Math.random() * 1.0 : 1.5 + Math.random() * 1.5
 
     twinkleOffsets[i] = Math.random() * Math.PI * 2
   }
@@ -311,6 +326,84 @@ const createStarParticles = () => {
   starParticles = new THREE.Points(starGeometry, starMaterial)
   starParticles.frustumCulled = false
   scene.add(starParticles)
+}
+
+/**
+ * S6-T3: Создаёт 3 полупрозрачных туманности для космической атмосферы
+ * Размытые сферы с breathing анимацией
+ */
+const createNebulae = () => {
+  const nebulaConfigs = [
+    { color: 0x6366f1, x: -15, y: 8, z: -40, scale: 18, opacity: 0.08, breathSpeed: 0.0003, breathPhase: 0 },
+    { color: 0xec4899, x: 12, y: -5, z: -55, scale: 22, opacity: 0.06, breathSpeed: 0.00025, breathPhase: 2.1 },
+    { color: 0x8b5cf6, x: -5, y: -10, z: -70, scale: 25, opacity: 0.05, breathSpeed: 0.0002, breathPhase: 4.2 },
+  ]
+
+  nebulaConfigs.forEach((cfg) => {
+    const geometry = new THREE.PlaneGeometry(1, 1)
+    const material = new THREE.ShaderMaterial({
+      uniforms: {
+        uColor: { value: new THREE.Color(cfg.color) },
+        uOpacity: { value: cfg.opacity },
+        uTime: { value: 0 },
+      },
+      vertexShader: nebulaVertexShader,
+      fragmentShader: nebulaFragmentShader,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    })
+
+    const mesh = new THREE.Mesh(geometry, material)
+    mesh.position.set(cfg.x, cfg.y, cfg.z)
+    mesh.scale.setScalar(cfg.scale)
+    // Случайный поворот для разнообразия
+    mesh.rotation.z = cfg.breathPhase
+
+    scene.add(mesh)
+    nebulae.push({
+      mesh,
+      baseScale: cfg.scale,
+      baseOpacity: cfg.opacity,
+      breathSpeed: cfg.breathSpeed,
+      breathPhase: cfg.breathPhase,
+    })
+  })
+}
+
+/**
+ * S6-T4: Создаёт тонкие геометрические линии для глубины
+ * Разреженная сетка с очень низкой прозрачностью
+ */
+const createGridLines = () => {
+  const gridMaterial = new THREE.LineBasicMaterial({
+    color: 0x6366f1,
+    transparent: true,
+    opacity: 0.06,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  })
+
+  const points = []
+  const gridSize = 80
+  const spacing = 10
+
+  // Горизонтальные линии
+  for (let y = -gridSize / 2; y <= gridSize / 2; y += spacing) {
+    points.push(new THREE.Vector3(-gridSize / 2, y, -60))
+    points.push(new THREE.Vector3(gridSize / 2, y, -60))
+  }
+
+  // Вертикальные линии
+  for (let x = -gridSize / 2; x <= gridSize / 2; x += spacing) {
+    points.push(new THREE.Vector3(x, -gridSize / 2, -60))
+    points.push(new THREE.Vector3(x, gridSize / 2, -60))
+  }
+
+  const geometry = new THREE.BufferGeometry().setFromPoints(points)
+  gridLines = new THREE.LineSegments(geometry, gridMaterial)
+  scene.add(gridLines)
 }
 
 /**
@@ -535,9 +628,31 @@ const animate = () => {
     })
   }
 
+  // S6-T5: Audio reactivity — rmsLevel влияет на фоновые эффекты
+  const rms = props.rmsLevel || 0
+  const audioBoost = Math.min(rms * 3, 1.0) // Нормализованный 0-1
+
   // S6-T2: Обновляем время для star shader (мерцание и drift)
   if (starMaterial) {
     starMaterial.uniforms.uTime.value = now
+    // S6-T5: Звёзды ускоряются на peaks
+    starMaterial.uniforms.uSpeed.value = 1.0 + audioBoost * 2.0
+  }
+
+  // S6-T3: Breathing анимация для туманностей
+  nebulae.forEach((neb) => {
+    const breath = Math.sin(now * neb.breathSpeed + neb.breathPhase) * 0.05 + 1.0 // 0.95-1.05
+    neb.mesh.scale.setScalar(neb.baseScale * breath)
+    neb.mesh.material.uniforms.uTime.value = now
+    // S6-T5: Туманности становятся ярче на peaks (до +50%)
+    neb.mesh.material.uniforms.uOpacity.value = neb.baseOpacity * (1.0 + audioBoost * 0.5)
+    // Медленное вращение
+    neb.mesh.rotation.z += 0.00003
+  })
+
+  // S6-T5: Grid линии становятся ярче на peaks
+  if (gridLines) {
+    gridLines.material.opacity = 0.06 + audioBoost * 0.08
   }
 
   // Рендерим сцену через post-processing composer
@@ -694,6 +809,22 @@ onUnmounted(() => {
     starGeometry.dispose()
     starMaterial.dispose()
     starParticles = null
+  }
+
+  // Dispose nebulae
+  nebulae.forEach((neb) => {
+    scene.remove(neb.mesh)
+    neb.mesh.geometry.dispose()
+    neb.mesh.material.dispose()
+  })
+  nebulae.length = 0
+
+  // Dispose grid lines
+  if (gridLines) {
+    scene.remove(gridLines)
+    gridLines.geometry.dispose()
+    gridLines.material.dispose()
+    gridLines = null
   }
 
   // Dispose particle system

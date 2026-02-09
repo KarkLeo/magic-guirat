@@ -17,6 +17,7 @@
       :string-intensities="isCapturing ? stringIntensities : {}"
       :detection-mode="detectionMode"
       :is-active="isCapturing"
+      :rms-level="audioLevel"
     />
 
     <!-- Отображение аккорда / ноты -->
