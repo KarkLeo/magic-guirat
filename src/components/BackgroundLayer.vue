@@ -1,6 +1,8 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import * as THREE from 'three'
+import starVertexShader from '@/shaders/starVertex.glsl?raw'
+import starFragmentShader from '@/shaders/starFragment.glsl?raw'
 
 // Props - Audio reactivity (будет использоваться в S6-T5)
 const props = defineProps({
@@ -9,6 +11,11 @@ const props = defineProps({
     default: 0,
   },
 })
+
+// === CONSTANTS ===
+const NUM_STARS = 800 // Количество звезд
+const STAR_SPREAD = 100 // Радиус распределения звезд
+const STAR_DEPTH = 50 // Глубина распределения по Z
 
 // Template refs
 const canvasRef = ref()
@@ -19,6 +26,11 @@ let scene
 let camera
 let renderer
 let animationFrameId
+
+// Particle system для звезд
+let starParticles = null
+let starGeometry = null
+let starMaterial = null
 
 // Размеры
 let width = 0
@@ -51,11 +63,74 @@ function initThreeJS() {
   renderer.setSize(width, height)
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
-  // TODO (S6-T2): Add particle system
+  // S6-T2: Создаём звезды
+  createStarParticles()
+
   // TODO (S6-T3): Add nebula spheres
   // TODO (S6-T4): Add grid lines
 
   console.log('[BackgroundLayer] Three.js initialized:', { width, height })
+}
+
+/**
+ * S6-T2: Создаёт particle system для звезд
+ * GPU-оптимизированная система с Float32Array буферами
+ */
+function createStarParticles() {
+  // Инициализация typed arrays
+  const positions = new Float32Array(NUM_STARS * 3)
+  const alphas = new Float32Array(NUM_STARS)
+  const sizes = new Float32Array(NUM_STARS)
+  const twinkleOffsets = new Float32Array(NUM_STARS)
+
+  // Генерация звезд с случайными параметрами
+  for (let i = 0; i < NUM_STARS; i++) {
+    // Позиция: равномерное распределение в 3D пространстве
+    const theta = Math.random() * Math.PI * 2 // Угол
+    const radius = Math.random() * STAR_SPREAD // Радиус от центра
+    const z = (Math.random() - 0.5) * STAR_DEPTH // Глубина
+
+    positions[i * 3 + 0] = Math.cos(theta) * radius // x
+    positions[i * 3 + 1] = Math.sin(theta) * radius // y
+    positions[i * 3 + 2] = z
+
+    // Альфа: большинство звезд тусклые, некоторые яркие
+    const brightness = Math.random()
+    alphas[i] = brightness < 0.7 ? 0.3 + Math.random() * 0.4 : 0.8 + Math.random() * 0.2
+
+    // Размер: различные размеры (маленькие и большие звезды)
+    sizes[i] = brightness < 0.7 ? 1.0 + Math.random() * 1.5 : 2.0 + Math.random() * 1.5
+
+    // Twinkle offset: случайная фаза для асинхронного мерцания
+    twinkleOffsets[i] = Math.random() * Math.PI * 2
+  }
+
+  // Создание geometry с attributes
+  starGeometry = new THREE.BufferGeometry()
+  starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+  starGeometry.setAttribute('aAlpha', new THREE.BufferAttribute(alphas, 1))
+  starGeometry.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1))
+  starGeometry.setAttribute('aTwinkleOffset', new THREE.BufferAttribute(twinkleOffsets, 1))
+
+  // Shader material с custom shaders
+  starMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 },
+      uSpeed: { value: 1.0 }, // Будет модулироваться в S6-T5 (audio reactive)
+    },
+    vertexShader: starVertexShader,
+    fragmentShader: starFragmentShader,
+    transparent: true,
+    blending: THREE.AdditiveBlending, // Аддитивное смешивание для свечения
+    depthWrite: false,
+  })
+
+  // Создание Points object
+  starParticles = new THREE.Points(starGeometry, starMaterial)
+  starParticles.frustumCulled = false
+  scene.add(starParticles)
+
+  console.log('[BackgroundLayer] Star particles created:', NUM_STARS)
 }
 
 /**
@@ -64,7 +139,11 @@ function initThreeJS() {
 function animate() {
   animationFrameId = requestAnimationFrame(animate)
 
-  // TODO (S6-T2): Update particles
+  // S6-T2: Обновление времени для star shader
+  if (starMaterial) {
+    starMaterial.uniforms.uTime.value = performance.now()
+  }
+
   // TODO (S6-T3): Animate nebulae (breathing, movement)
   // TODO (S6-T5): Audio reactivity
 
@@ -95,6 +174,14 @@ function handleResize() {
 function cleanup() {
   if (animationFrameId) {
     cancelAnimationFrame(animationFrameId)
+  }
+
+  // Dispose star particle system
+  if (starParticles) {
+    scene.remove(starParticles)
+    starGeometry?.dispose()
+    starMaterial?.dispose()
+    starParticles = null
   }
 
   // Dispose Three.js objects

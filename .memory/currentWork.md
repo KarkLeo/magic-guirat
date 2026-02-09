@@ -3,7 +3,7 @@
 **Дата начала:** 2026-02-07
 **Текущий спринт:** Sprint 6 🔵 IN PROGRESS
 **Текущая дата:** 2026-02-09
-**Статус:** S6-T1 COMPLETE ✅, READY FOR S6-T2
+**Статус:** S6-T2 COMPLETE ✅, READY FOR S6-T3
 
 ---
 
@@ -219,14 +219,14 @@
 | ID | Задача | Приоритет | Оценка | Фактически | Статус |
 |----|--------|-----------|--------|-----------|--------|
 | S6-T1 | Background Layer Component | P0 | 2h | 1.5h | ✅ DONE |
-| S6-T2 | Particle System - Stars | P0 | 3-4h | - | ⬜ TODO |
+| S6-T2 | Particle System - Stars | P0 | 3-4h | 2.0h | ✅ DONE |
 | S6-T3 | Nebula Effect | P1 | 3h | - | ⬜ TODO |
 | S6-T4 | Geometric Grid Lines | P2 | 2h | - | ⬜ TODO |
 | S6-T5 | Audio Reactivity для Фона | P1 | 2h | - | ⬜ TODO |
 
 **Блокеры:** нет
-**Velocity:** 1.5 часа (1/5 задач завершено)
-**Завершено:** 20% (1/5 задач)
+**Velocity:** 3.5 часа (2/5 задач завершено)
+**Завершено:** 40% (2/5 задач)
 
 ### S6-T1: Background Layer Component ✅ COMPLETE
 
@@ -253,37 +253,65 @@
 - Audio reactivity watcher подготовлен для S6-T5
 - Performance стабильный (отдельный renderer не влияет на FPS)
 
+### S6-T2: Particle System - Stars ✅ COMPLETE
+
+**Что сделано:**
+- ✅ Создана GPU-оптимизированная particle system с 800 звездами
+- ✅ Float32Array buffers для positions, alphas, sizes, twinkleOffsets
+- ✅ Custom shaders (starVertex.glsl, starFragment.glsl)
+- ✅ Twinkle эффект через sin wave с индивидуальными offsets
+- ✅ Медленный drift через sin/cos анимацию (0.0002-0.00015 скорость)
+- ✅ Размеры: 1.0-3.5px (маленькие и большие звезды)
+- ✅ Альфа: 0.3-1.0 (70% тусклых, 30% ярких)
+- ✅ Gaussian falloff в fragment shader для soft edges
+- ✅ Additive blending для свечения
+- ✅ Равномерное распределение в 3D (STAR_SPREAD=100, STAR_DEPTH=50)
+- ✅ Uniform uSpeed для будущей audio reactivity (S6-T5)
+- ✅ Proper cleanup в onUnmounted (dispose geometry, material)
+
+**Файлы:**
+- `src/shaders/starVertex.glsl` - новый vertex shader для звезд
+- `src/shaders/starFragment.glsl` - новый fragment shader для звезд
+- `src/components/BackgroundLayer.vue` - добавлена particle system
+
+**Результат:**
+- 800 звезд мерцают и медленно дрейфуют
+- Космическая атмосфера с глубиной
+- Мягкие края и свечение (gaussian falloff)
+- Performance стабильный (GPU-оптимизация)
+- Готово для audio reactivity в S6-T5
+
 ---
 
 ## 📝 Следующие Действия
 
-### Sprint 6 - Task 2: Particle System (Stars) ⬜ NEXT
+### Sprint 6 - Task 3: Nebula Effect ⬜ NEXT
 
-**Цель:** Создать систему частиц для космической пыли и звезд (200-300 частиц)
+**Цель:** Создать эффект туманностей (nebulae) для космической атмосферы
 
 **Что нужно сделать:**
-1. Создать BufferGeometry с Float32Array (positions, colors, sizes)
-2. ShaderMaterial для частиц с мерцанием (twinkle effect)
-3. Вертексный шейдер: parallax движение (sin/cos по X/Y)
-4. Фрагментный шейдер: circular shape + twinkle анимация
-5. Цвета: white (70%), cyan (15%), pink (15%)
-6. Точечный размер: 1-4px с depth attenuation
+1. Создать 2-3 больших полупрозрачных сферы (SphereGeometry)
+2. Custom fragment shader для nebula эффекта (volumetric noise)
+3. Breathing анимация (scale 0.95-1.05, 30s цикл)
+4. Цвета: purple/pink/blue градиенты
+5. Opacity: 0.15-0.25 (очень прозрачные)
+6. Slow rotation (0.0001 rad/frame)
 
 **Файлы для создания:**
-- `src/shaders/particleVertex.glsl` (новый)
-- `src/shaders/particleFragment.glsl` (новый)
+- `src/shaders/nebulaVertex.glsl` (новый)
+- `src/shaders/nebulaFragment.glsl` (новый)
 
 **Файлы для редактирования:**
-- `src/components/BackgroundLayer.vue` (добавить particle system)
+- `src/components/BackgroundLayer.vue` (добавить nebula system)
 
 **Acceptance Criteria:**
-- 200-300 частиц на сцене
-- Плавное параллакс движение
-- Мерцание (twinkle effect)
-- Цвета из палитры
+- 2-3 туманности видны на фоне
+- Breathing анимация плавная (30s цикл)
+- Цвета из палитры (purple/pink/blue)
 - Performance не падает (≥55 FPS)
+- Готово для audio reactivity (S6-T5)
 
-**Estimate:** 3-4 часа
+**Estimate:** 3 часа
 
 ---
 
@@ -341,12 +369,12 @@
 ### Overall Progress
 - Sprint 4: 100% ✅ (5/5 задач завершено)
 - Sprint 5: 100% ✅ (5/5 задач завершено)
-- Sprint 6: 20% 🔵 (1/5 задач завершено, S6-T1 DONE)
+- Sprint 6: 40% 🔵 (2/5 задач завершено, S6-T1+T2 DONE)
 - Sprint 7: 0%
 - Sprint 8: 0%
 - Sprint 9: 0%
 
-**Total:** 37% (2 спринта завершено + 20% Sprint 6)
+**Total:** 40% (2 спринта завершено + 40% Sprint 6)
 
 ---
 
@@ -453,5 +481,5 @@
 
 ---
 
-**Last Updated:** 2026-02-09 (Sprint 5 завершён, Sprint 6 начат - S6-T1 DONE)
+**Last Updated:** 2026-02-09 (Sprint 5 завершён, Sprint 6: 40% - S6-T1+T2 DONE)
 **Next Review:** После завершения Sprint 6 (Background Effects)
