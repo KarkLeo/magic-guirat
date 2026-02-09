@@ -37,9 +37,12 @@ export class GhostTrailPass extends Pass {
         tPrevious: { value: this.currentReadTarget.texture }, // Предыдущий накопленный кадр
         uFadeSpeed: { value: 0.05 },   // Скорость затухания (0.05 = плавное затухание 2-3 сек)
         uOpacity: { value: 0.7 },      // Прозрачность ghost trails
-        uDriftOffset: { value: new THREE.Vector2(0, 0.001) }, // Upward drift для дымного эффекта
+        uDriftOffset: { value: new THREE.Vector2(0, 0) }, // Базовое смещение (без дрейфа)
         uResolution: { value: new THREE.Vector2(width, height) }, // Разрешение для box blur
         uBlurAmount: { value: 1.5 },   // Интенсивность размытия
+        uTime: { value: 0.0 },         // Время для анимации волн
+        uSmokeIntensity: { value: 1.0 }, // Интенсивность волн дыма
+        uTurbulence: { value: 0.5 },   // Турбулентность дыма
       },
       vertexShader: `
         varying vec2 vUv;
@@ -89,6 +92,9 @@ export class GhostTrailPass extends Pass {
    * @param {THREE.WebGLRenderTarget} readBuffer - input buffer (текущий кадр)
    */
   render(renderer, writeBuffer, readBuffer) {
+    // Обновляем время для анимации
+    this.material.uniforms.uTime.value += 0.016 // ~60 FPS
+
     // ШАГ 1: Рендерим accumulation shader в currentWriteTarget
     this.material.uniforms.tDiffuse.value = readBuffer.texture
     this.material.uniforms.tPrevious.value = this.currentReadTarget.texture
@@ -159,5 +165,17 @@ export class GhostTrailPass extends Pass {
 
   setBlurAmount(value) {
     this.material.uniforms.uBlurAmount.value = value
+  }
+
+  setSmokeIntensity(value) {
+    this.material.uniforms.uSmokeIntensity.value = value
+  }
+
+  setTurbulence(value) {
+    this.material.uniforms.uTurbulence.value = value
+  }
+
+  setTime(value) {
+    this.material.uniforms.uTime.value = value
   }
 }

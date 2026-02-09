@@ -12,17 +12,21 @@ interface SettingsData {
   ghostOpacity: number
   ghostFadeSpeed: number
   ghostBlur: number
+  smokeIntensity: number
+  turbulence: number
 }
 
 const DEFAULTS: SettingsData = {
   selectedDeviceId: '',
   noiseThreshold: 0.01,
-  bloomIntensity: 1.2,
-  bloomThreshold: 0.15,
+  bloomIntensity: 0.85,
+  bloomThreshold: 0.28,
   bloomRadius: 0.1,
-  ghostOpacity: 0.1,
-  ghostFadeSpeed: 0.05,
-  ghostBlur: 1.5,
+  ghostOpacity: 0.52,   // Хорошо заметный шлейф, не перебивает струны
+  ghostFadeSpeed: 0.045, // Умеренное затухание — призраки успевают проявиться
+  ghostBlur: 0.6,        // Мягкое размытие, форма следа сохраняется
+  smokeIntensity: 1.0,   // Интенсивность волн дыма
+  turbulence: 0.5,       // Турбулентность дыма
 }
 
 // Module-level shared state (singleton)
@@ -34,6 +38,8 @@ const bloomRadius = ref<number>(DEFAULTS.bloomRadius)
 const ghostOpacity = ref<number>(DEFAULTS.ghostOpacity)
 const ghostFadeSpeed = ref<number>(DEFAULTS.ghostFadeSpeed)
 const ghostBlur = ref<number>(DEFAULTS.ghostBlur)
+const smokeIntensity = ref<number>(DEFAULTS.smokeIntensity)
+const turbulence = ref<number>(DEFAULTS.turbulence)
 const availableDevices = ref<MediaDeviceInfo[]>([])
 
 // Load from localStorage
@@ -50,6 +56,8 @@ function loadFromStorage(): void {
       if (parsed.ghostOpacity !== undefined) ghostOpacity.value = parsed.ghostOpacity
       if (parsed.ghostFadeSpeed !== undefined) ghostFadeSpeed.value = parsed.ghostFadeSpeed
       if (parsed.ghostBlur !== undefined) ghostBlur.value = parsed.ghostBlur
+      if (parsed.smokeIntensity !== undefined) smokeIntensity.value = parsed.smokeIntensity
+      if (parsed.turbulence !== undefined) turbulence.value = parsed.turbulence
     }
   } catch (e) {
     // ignored — используем дефолты
@@ -69,7 +77,9 @@ function persist(): void {
         bloomRadius: bloomRadius.value,
         ghostOpacity: ghostOpacity.value,
         ghostFadeSpeed: ghostFadeSpeed.value,
-        ghostBlur: ghostBlur.value
+        ghostBlur: ghostBlur.value,
+        smokeIntensity: smokeIntensity.value,
+        turbulence: turbulence.value
       })
     )
   } catch (e) {
@@ -87,6 +97,8 @@ watch(bloomRadius, persist)
 watch(ghostOpacity, persist)
 watch(ghostFadeSpeed, persist)
 watch(ghostBlur, persist)
+watch(smokeIntensity, persist)
+watch(turbulence, persist)
 
 export function useSettings(): UseSettingsReturn {
   const refreshDevices = async (): Promise<void> => {
@@ -108,6 +120,8 @@ export function useSettings(): UseSettingsReturn {
     ghostOpacity.value = DEFAULTS.ghostOpacity
     ghostFadeSpeed.value = DEFAULTS.ghostFadeSpeed
     ghostBlur.value = DEFAULTS.ghostBlur
+    smokeIntensity.value = DEFAULTS.smokeIntensity
+    turbulence.value = DEFAULTS.turbulence
   }
 
   return {
@@ -119,6 +133,8 @@ export function useSettings(): UseSettingsReturn {
     ghostOpacity,
     ghostFadeSpeed,
     ghostBlur,
+    smokeIntensity,
+    turbulence,
     availableDevices,
     refreshDevices,
     resetToDefaults

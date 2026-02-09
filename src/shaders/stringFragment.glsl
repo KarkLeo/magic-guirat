@@ -38,11 +38,9 @@ void main() {
   // 5. Комбинируем все эффекты свечения
   float totalGlow = uGlowIntensity * vIntensity * radialGlow * shimmer;
 
-  // 6. Финальный цвет
-  // baseColor - базовый градиент
-  // totalGlow - основное свечение (bloom)
-  // fresnel - дополнительное edge свечение
+  // 6. Финальный цвет без пересвета: мягкое ограничение яркости
   vec3 finalColor = baseColor * (1.0 + totalGlow + fresnel);
+  finalColor = finalColor / (1.0 + finalColor * 0.5);
 
   gl_FragColor = vec4(finalColor, 1.0);
 }

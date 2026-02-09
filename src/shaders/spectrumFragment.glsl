@@ -1,46 +1,48 @@
 // Spectrum Fragment Shader
-// Gradient colors + vertical/horizontal fade + shimmer
+// Яркая линия внизу, плавное растворение вверх (мягкий край, без пересвета)
 
 uniform float uTime;
-uniform float uDominantFreq; // 0-1: позиция доминантной частоты
-uniform float uBoost;        // 0-1: audio reactivity boost
+uniform float uDominantFreq;
+uniform float uBoost;
 
 varying vec2 vUv;
 
 void main() {
-  // 4-stop горизонтальный градиент: cyan → indigo → pink → amber
-  // Сдвигаем gradient по uDominantFreq
-  float gradPos = vUv.x + uDominantFreq * 0.15;
-
-  vec3 cyan   = vec3(0.0, 0.85, 0.95);
-  vec3 indigo = vec3(0.39, 0.4, 0.95);
-  vec3 pink   = vec3(0.93, 0.29, 0.61);
-  vec3 amber  = vec3(0.96, 0.62, 0.04);
+  // 3-stop градиент: pink (низ) → indigo (середина) → cyan (верх)
+  vec3 pink   = vec3(1.0, 0.0, 0.882);    // #FF00E1
+  vec3 indigo = vec3(0.216, 0.129, 0.871); // #3721DE
+  vec3 cyan   = vec3(0.0, 0.831, 1.0);    // #00D4FF
 
   vec3 color;
-  if (gradPos < 0.33) {
-    color = mix(cyan, indigo, gradPos / 0.33);
-  } else if (gradPos < 0.66) {
-    color = mix(indigo, pink, (gradPos - 0.33) / 0.33);
+  if (vUv.y < 0.5) {
+    color = mix(pink, indigo, vUv.y * 2.0);
   } else {
-    color = mix(pink, amber, clamp((gradPos - 0.66) / 0.34, 0.0, 1.0));
+    color = mix(indigo, cyan, (vUv.y - 0.5) * 2.0);
   }
 
-  // Вертикальный fade: растворение снизу вверх
-  float verticalFade = smoothstep(0.0, 0.6, vUv.y);
+  // Двойной fade для очень мягкого верхнего края:
+  // 1) Общий вертикальный градиент — плавное растворение вверх
+  float verticalFade = pow(1.0 - vUv.y, 0.9);
+  // 2) Edge softener — растянут на 60% высоты для максимально мягкой границы
+  float edgeSoft = smoothstep(1.0, 0.4, vUv.y);
+  verticalFade *= edgeSoft;
 
-  // Горизонтальный fade: растворение к краям
-  float horizontalFade = 1.0 - smoothstep(0.8, 1.0, abs(vUv.x - 0.5) * 2.0);
+  // Горизонтальный fade к краям
+  float horizontalFade = 1.0 - smoothstep(0.65, 1.0, abs(vUv.x - 0.5) * 2.0);
+  float shimmer = sin(uTime * 1.0 + vUv.x * 5.0) * 0.02 + 0.98;
 
-  // Shimmer
-  float shimmer = sin(uTime * 1.5 + vUv.x * 8.0) * 0.05 + 0.95;
+  float alpha = verticalFade * horizontalFade * shimmer * 0.7;
 
-  // Итоговая прозрачность
-  float alpha = verticalFade * horizontalFade * shimmer;
+  // Лёгкое розовое ядро внизу
+  float coreGlow = (1.0 - smoothstep(0.0, 0.15, vUv.y)) * 0.06;
+  color += coreGlow * pink * 0.5;
 
-  // Audio boost: ярче при сильном звуке
-  float boost = 1.0 + uBoost * 0.5;
+  // Audio boost
+  float boost = 1.0 + uBoost * 0.15;
   color *= boost;
 
-  gl_FragColor = vec4(color, alpha * 0.85);
+  // Яркость контролируется через alpha (AdditiveBlending),
+  // без Reinhard — он десатурирует яркие цвета, делая их серыми
+
+  gl_FragColor = vec4(color, alpha);
 }

@@ -100,6 +100,8 @@ export interface UseSettingsReturn {
   ghostOpacity: Ref<number>
   ghostFadeSpeed: Ref<number>
   ghostBlur: Ref<number>
+  smokeIntensity: Ref<number>
+  turbulence: Ref<number>
   availableDevices: Ref<MediaDeviceInfo[]>
   refreshDevices: () => Promise<void>
   resetToDefaults: () => void

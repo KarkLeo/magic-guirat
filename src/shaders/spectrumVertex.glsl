@@ -1,5 +1,5 @@
 // Spectrum Vertex Shader
-// Passthrough с UV + secondary wave animation
+// UV + лёгкая волна по верхнему краю (полярное сияние)
 
 uniform float uTime;
 
@@ -9,10 +9,9 @@ void main() {
   vUv = uv;
 
   vec3 pos = position;
-
-  // Secondary wave: еле заметные вторичные волны на верхних вершинах
-  float isTop = step(0.01, uv.y); // 1.0 для верхних вершин
-  pos.y += sin(uTime * 0.8 + pos.x * 0.5) * 0.15 * isTop;
+  float isTop = step(0.01, uv.y);
+  // Мягкая волна по верхней линии — «занавес» сияния
+  pos.y += sin(uTime * 0.6 + pos.x * 0.4) * 0.08 * isTop;
 
   gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
 }

@@ -172,6 +172,47 @@
               <span>Дымные</span>
             </div>
           </div>
+
+          <!-- Новые настройки дыма -->
+          <div class="settings-divider"></div>
+          
+          <div class="settings-section">
+            <label class="settings-label">
+              Интенсивность волн
+              <span class="settings-value">{{ formattedSmokeIntensity }}</span>
+            </label>
+            <input
+              v-model.number="smokeIntensity"
+              type="range"
+              min="0.0"
+              max="2.0"
+              step="0.1"
+              class="settings-range"
+            />
+            <div class="settings-range-labels">
+              <span>Спокойные</span>
+              <span>Активные</span>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <label class="settings-label">
+              Турбулентность
+              <span class="settings-value">{{ formattedTurbulence }}</span>
+            </label>
+            <input
+              v-model.number="turbulence"
+              type="range"
+              min="0.0"
+              max="1.0"
+              step="0.05"
+              class="settings-range"
+            />
+            <div class="settings-range-labels">
+              <span>Плавные</span>
+              <span>Клубящиеся</span>
+            </div>
+          </div>
         </div>
 
         <div class="settings-footer">
@@ -212,6 +253,8 @@ const {
   ghostOpacity,
   ghostFadeSpeed,
   ghostBlur,
+  smokeIntensity,
+  turbulence,
   availableDevices,
   refreshDevices,
   resetToDefaults
@@ -224,6 +267,8 @@ const formattedRadiusValue = computed(() => bloomRadius.value.toFixed(2))
 const formattedGhostOpacity = computed(() => ghostOpacity.value.toFixed(2))
 const formattedGhostFadeSpeed = computed(() => ghostFadeSpeed.value.toFixed(3))
 const formattedGhostBlur = computed(() => ghostBlur.value.toFixed(1))
+const formattedSmokeIntensity = computed(() => smokeIntensity.value.toFixed(1))
+const formattedTurbulence = computed(() => turbulence.value.toFixed(2))
 
 // Обновляем список устройств при открытии панели
 watch(

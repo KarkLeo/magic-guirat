@@ -14,6 +14,10 @@ import { GUITAR_STRINGS, TOTAL_STRINGS } from '@/utils/guitarMapping'
 import { ColorUtils } from '@/constants'
 import { useSettings } from '@/composables/useSettings'
 import { GhostTrailPass } from '@/utils/GhostTrailPass'
+import {
+  SaveFullSceneAndRenderStringsOnlyPass,
+  CompositeFullSceneWithGhostPass,
+} from '@/utils/ComposerHelperPasses'
 // Импортируем шейдеры как raw строки
 import stringVertexShader from '@/shaders/stringVertex.glsl?raw'
 import stringFragmentShader from '@/shaders/stringFragment.glsl?raw'
@@ -66,8 +70,11 @@ let bloomPass = null // Bloom effect pass
 const strings = [] // Массив mesh'ей струн
 let animationFrameId = null
 
-// FBO система для Ghost Trails
-let ghostTrailPass = null // Кастомный pass для ghost trails эффекта
+// FBO система для Ghost Trails (только от струн)
+let ghostTrailPass = null
+let fullSceneRT = null // Хранит полный кадр для композитинга
+let saveFullSceneAndRenderStringsPass = null
+let compositeFullSceneWithGhostPass = null
 
 // S6-T2: Star particle system
 let starParticles = null
@@ -88,9 +95,9 @@ let spectrumMesh = null
 let spectrumGeometry = null
 let spectrumMaterial = null
 let spectrumAnalyzer = null // useFrequencyAnalyzer instance
-const SPECTRUM_BINS = 128
-const SPECTRUM_Y_BASE = -6     // Базовая линия спектра
-const SPECTRUM_HEIGHT = 3      // Максимальная высота
+const SPECTRUM_BINS = 256
+const SPECTRUM_Y_BASE = -7.6   // Точно у нижнего края экрана (чуть ниже видимой границы)
+const SPECTRUM_HEIGHT = 6      // Верх растворяется в «небо»
 const SPECTRUM_X_MIN = -12
 const SPECTRUM_X_MAX = 12
 const smoothedSpectrum = new Float32Array(SPECTRUM_BINS) // Сглаженные данные
@@ -133,7 +140,7 @@ const PARTICLE_LIFETIME_MAX = 2.2
 const PARTICLE_BASE_SIZE = 0.38
 
 // Настройки из useSettings
-const { bloomIntensity, bloomThreshold, bloomRadius, ghostOpacity, ghostFadeSpeed, ghostBlur } = useSettings()
+const { bloomIntensity, bloomThreshold, bloomRadius, ghostOpacity, ghostFadeSpeed, ghostBlur, smokeIntensity, turbulence } = useSettings()
 
 /**
  * Создаёт FBO систему для Ghost Trails эффекта
@@ -143,11 +150,22 @@ const createGhostTrailFBO = () => {
   const w = getViewportWidth()
   const h = getViewportHeight()
 
-  // Создаём кастомный Ghost Trail Pass с production параметрами:
-  // - fadeSpeed: 0.05 (затухание 2-3 секунды)
-  // - opacity: 0.7 (полупрозрачные призраки)
-  // - driftOffset: (0, 0.001) (плавное поднятие вверх)
+  const rtOptions = {
+    minFilter: THREE.LinearFilter,
+    magFilter: THREE.LinearFilter,
+    format: THREE.RGBAFormat,
+    type: THREE.UnsignedByteType,
+    stencilBuffer: false,
+  }
+  fullSceneRT = new THREE.WebGLRenderTarget(w, h, rtOptions)
+
+  saveFullSceneAndRenderStringsPass = new SaveFullSceneAndRenderStringsOnlyPass(
+    scene,
+    camera,
+    fullSceneRT,
+  )
   ghostTrailPass = new GhostTrailPass(w, h)
+  compositeFullSceneWithGhostPass = new CompositeFullSceneWithGhostPass(fullSceneRT)
 }
 
 /**
@@ -264,11 +282,11 @@ const initThreeJS = () => {
   const renderPass = new RenderPass(scene, camera)
   composer.addPass(renderPass)
 
-  // Создаём и добавляем FBO систему для Ghost Trails (перед bloom!)
-  // Multi-String Support: GhostTrailPass получает полный кадр со всеми струнами
-  // и накапливает их вместе, сохраняя индивидуальные цвета каждой струны
+  // Сохраняем полный кадр и рендерим только струны (layer 1) → призраки только от струн
   createGhostTrailFBO()
+  composer.addPass(saveFullSceneAndRenderStringsPass)
   composer.addPass(ghostTrailPass)
+  composer.addPass(compositeFullSceneWithGhostPass)
 
   // Bloom pass для магического свечения (применяется ПОСЛЕ ghost trails)
   bloomPass = new UnrealBloomPass(
@@ -527,6 +545,25 @@ const catmullRomSmooth = (data, output) => {
 }
 
 /**
+ * S7: Мягкое сглаживание по 5 точкам (убирает зубчатость)
+ */
+const smoothSpectrumLine = (data, radius = 2) => {
+  const n = data.length
+  const out = new Float32Array(n)
+  for (let i = 0; i < n; i++) {
+    let sum = 0
+    let count = 0
+    for (let j = -radius; j <= radius; j++) {
+      const k = Math.max(0, Math.min(n - 1, i + j))
+      sum += data[k]
+      count++
+    }
+    out[i] = sum / count
+  }
+  return out
+}
+
+/**
  * S7: Обновляет вершины спектра из frequency data
  */
 const updateSpectrumVertices = (spectrumData) => {
@@ -539,16 +576,19 @@ const updateSpectrumVertices = (spectrumData) => {
   const smoothedInput = new Float32Array(numCols)
   catmullRomSmooth(spectrumData, smoothedInput)
 
-  // Lerp к текущим значениям для плавности
+  // Lerp к текущим значениям (меньший коэффициент = плавнее реакция)
   for (let i = 0; i < numCols; i++) {
     const normalized = smoothedInput[i] / 255 // 0..1
-    smoothedSpectrum[i] += (normalized - smoothedSpectrum[i]) * 0.25
+    smoothedSpectrum[i] += (normalized - smoothedSpectrum[i]) * 0.2
   }
+
+  // Дополнительное сглаживание линии (убирает грубость)
+  const finalSpectrum = smoothSpectrumLine(smoothedSpectrum, 2)
 
   // Обновляем верхний ряд вершин
   for (let i = 0; i < numCols; i++) {
     const topIdx = numCols + i
-    positions[topIdx * 3 + 1] = SPECTRUM_Y_BASE + smoothedSpectrum[i] * SPECTRUM_HEIGHT
+    positions[topIdx * 3 + 1] = SPECTRUM_Y_BASE + finalSpectrum[i] * SPECTRUM_HEIGHT
   }
 
   spectrumGeometry.attributes.position.needsUpdate = true
@@ -604,6 +644,7 @@ const createStrings = () => {
 
     mesh.position.set(0, yPosition, 0)
     mesh.rotation.z = Math.PI / 2 // Поворот на 90° (горизонтально)
+    mesh.layers.enable(1) // Layer 1: только струны для ghost trails
 
     // Сохраняем референс на струну
     mesh.userData = {
@@ -903,15 +944,10 @@ const handleResize = () => {
   camera.updateProjectionMatrix()
   renderer.setSize(width, height)
 
-  // Обновляем размер FBO targets через GhostTrailPass
-  if (ghostTrailPass) {
-    ghostTrailPass.setSize(width, height)
-  }
+  if (fullSceneRT) fullSceneRT.setSize(width, height)
+  if (ghostTrailPass) ghostTrailPass.setSize(width, height)
 
-  // Обновляем размер composer
-  if (composer) {
-    composer.setSize(width, height)
-  }
+  if (composer) composer.setSize(width, height)
 }
 
 // Watch для обновления свечения
@@ -974,6 +1010,19 @@ watch(ghostFadeSpeed, (newFadeSpeed) => {
 watch(ghostBlur, (newBlur) => {
   if (ghostTrailPass) {
     ghostTrailPass.setBlurAmount(newBlur)
+  }
+})
+
+// Watch для новых параметров дыма
+watch(smokeIntensity, (newIntensity) => {
+  if (ghostTrailPass) {
+    ghostTrailPass.setSmokeIntensity(newIntensity)
+  }
+})
+
+watch(turbulence, (newTurbulence) => {
+  if (ghostTrailPass) {
+    ghostTrailPass.setTurbulence(newTurbulence)
   }
 })
 
@@ -1056,10 +1105,21 @@ onUnmounted(() => {
     string.material.dispose()
   })
 
-  // Dispose FBO resources через GhostTrailPass
+  if (saveFullSceneAndRenderStringsPass) {
+    saveFullSceneAndRenderStringsPass.dispose()
+    saveFullSceneAndRenderStringsPass = null
+  }
+  if (compositeFullSceneWithGhostPass) {
+    compositeFullSceneWithGhostPass.dispose()
+    compositeFullSceneWithGhostPass = null
+  }
   if (ghostTrailPass) {
     ghostTrailPass.dispose()
     ghostTrailPass = null
+  }
+  if (fullSceneRT) {
+    fullSceneRT.dispose()
+    fullSceneRT = null
   }
 
   if (composer) {
