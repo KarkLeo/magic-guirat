@@ -21,6 +21,9 @@ import starVertexShader from '@/shaders/starVertex.glsl?raw'
 import starFragmentShader from '@/shaders/starFragment.glsl?raw'
 import nebulaVertexShader from '@/shaders/nebulaVertex.glsl?raw'
 import nebulaFragmentShader from '@/shaders/nebulaFragment.glsl?raw'
+import spectrumVertexShader from '@/shaders/spectrumVertex.glsl?raw'
+import spectrumFragmentShader from '@/shaders/spectrumFragment.glsl?raw'
+import { useFrequencyAnalyzer } from '@/composables/useFrequencyAnalyzer'
 
 const props = defineProps({
   activeStringIndices: {
@@ -43,6 +46,11 @@ const props = defineProps({
   rmsLevel: {
     type: Number,
     default: 0,
+  },
+  // S7: AnalyserNode для 3D спектра
+  analyserNode: {
+    type: Object,
+    default: null,
   },
 })
 
@@ -74,6 +82,18 @@ const nebulae = [] // Массив {mesh, baseScale, breathSpeed, breathPhase}
 
 // S6-T4: Grid lines
 let gridLines = null
+
+// S7: Spectrum mesh
+let spectrumMesh = null
+let spectrumGeometry = null
+let spectrumMaterial = null
+let spectrumAnalyzer = null // useFrequencyAnalyzer instance
+const SPECTRUM_BINS = 128
+const SPECTRUM_Y_BASE = -6     // Базовая линия спектра
+const SPECTRUM_HEIGHT = 3      // Максимальная высота
+const SPECTRUM_X_MIN = -12
+const SPECTRUM_X_MAX = 12
+const smoothedSpectrum = new Float32Array(SPECTRUM_BINS) // Сглаженные данные
 
 // Система частиц
 let particleSystem = null
@@ -267,6 +287,9 @@ const initThreeJS = () => {
   // Создаём струны
   createStrings()
 
+  // S7: Создаём 3D спектр
+  createSpectrumMesh()
+
   // Создаём систему частиц
   createParticleSystem()
 
@@ -406,6 +429,129 @@ const createGridLines = () => {
   const geometry = new THREE.BufferGeometry().setFromPoints(points)
   gridLines = new THREE.LineSegments(geometry, gridMaterial)
   scene.add(gridLines)
+}
+
+/**
+ * S7: Создаёт mesh спектра — заполненная область с деформируемыми вершинами
+ * 128 столбцов × 2 ряда вершин (верх + низ), indexed triangles
+ */
+const createSpectrumMesh = () => {
+  const numCols = SPECTRUM_BINS
+  const xRange = SPECTRUM_X_MAX - SPECTRUM_X_MIN
+
+  // Вершины: 2 ряда по numCols точек (нижний + верхний)
+  const vertexCount = numCols * 2
+  const positions = new Float32Array(vertexCount * 3)
+  const uvs = new Float32Array(vertexCount * 2)
+
+  for (let i = 0; i < numCols; i++) {
+    const t = i / (numCols - 1) // 0..1
+    const x = SPECTRUM_X_MIN + t * xRange
+
+    // Нижний ряд (index = i)
+    const bottomIdx = i
+    positions[bottomIdx * 3 + 0] = x
+    positions[bottomIdx * 3 + 1] = SPECTRUM_Y_BASE
+    positions[bottomIdx * 3 + 2] = 0
+    uvs[bottomIdx * 2 + 0] = t
+    uvs[bottomIdx * 2 + 1] = 0.0
+
+    // Верхний ряд (index = numCols + i)
+    const topIdx = numCols + i
+    positions[topIdx * 3 + 0] = x
+    positions[topIdx * 3 + 1] = SPECTRUM_Y_BASE // Начинаем с базовой линии
+    positions[topIdx * 3 + 2] = 0
+    uvs[topIdx * 2 + 0] = t
+    uvs[topIdx * 2 + 1] = 1.0
+  }
+
+  // Индексы: два треугольника на каждый столбец
+  const indexCount = (numCols - 1) * 6
+  const indices = new Uint16Array(indexCount)
+  let idx = 0
+  for (let i = 0; i < numCols - 1; i++) {
+    const bl = i            // bottom-left
+    const br = i + 1        // bottom-right
+    const tl = numCols + i  // top-left
+    const tr = numCols + i + 1 // top-right
+
+    // Треугольник 1: bl, tl, br
+    indices[idx++] = bl
+    indices[idx++] = tl
+    indices[idx++] = br
+
+    // Треугольник 2: br, tl, tr
+    indices[idx++] = br
+    indices[idx++] = tl
+    indices[idx++] = tr
+  }
+
+  spectrumGeometry = new THREE.BufferGeometry()
+  spectrumGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+  spectrumGeometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2))
+  spectrumGeometry.setIndex(new THREE.BufferAttribute(indices, 1))
+
+  spectrumMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0.0 },
+      uDominantFreq: { value: 0.5 },
+      uBoost: { value: 0.0 },
+    },
+    vertexShader: spectrumVertexShader,
+    fragmentShader: spectrumFragmentShader,
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  })
+
+  spectrumMesh = new THREE.Mesh(spectrumGeometry, spectrumMaterial)
+  spectrumMesh.frustumCulled = false
+  scene.add(spectrumMesh)
+}
+
+/**
+ * S7: Catmull-Rom сглаживание для массива данных
+ */
+const catmullRomSmooth = (data, output) => {
+  const n = data.length
+  for (let i = 0; i < n; i++) {
+    const p0 = data[Math.max(0, i - 1)]
+    const p1 = data[i]
+    const p2 = data[Math.min(n - 1, i + 1)]
+    const p3 = data[Math.min(n - 1, i + 2)]
+    // Catmull-Rom at t=0.5 (center point)
+    output[i] = 0.5 * (2 * p1 + (-p0 + p2) * 0.5 + (2 * p0 - 5 * p1 + 4 * p2 - p3) * 0.25 + (-p0 + 3 * p1 - 3 * p2 + p3) * 0.125)
+    if (output[i] < 0) output[i] = 0
+  }
+}
+
+/**
+ * S7: Обновляет вершины спектра из frequency data
+ */
+const updateSpectrumVertices = (spectrumData) => {
+  if (!spectrumGeometry) return
+
+  const positions = spectrumGeometry.attributes.position.array
+  const numCols = SPECTRUM_BINS
+
+  // Catmull-Rom сглаживание входных данных
+  const smoothedInput = new Float32Array(numCols)
+  catmullRomSmooth(spectrumData, smoothedInput)
+
+  // Lerp к текущим значениям для плавности
+  for (let i = 0; i < numCols; i++) {
+    const normalized = smoothedInput[i] / 255 // 0..1
+    smoothedSpectrum[i] += (normalized - smoothedSpectrum[i]) * 0.25
+  }
+
+  // Обновляем верхний ряд вершин
+  for (let i = 0; i < numCols; i++) {
+    const topIdx = numCols + i
+    positions[topIdx * 3 + 1] = SPECTRUM_Y_BASE + smoothedSpectrum[i] * SPECTRUM_HEIGHT
+  }
+
+  spectrumGeometry.attributes.position.needsUpdate = true
 }
 
 /**
@@ -660,6 +806,28 @@ const animate = () => {
     gridLines.material.opacity = 0.06 + smoothedAudioBoost * 0.08
   }
 
+  // S7: Обновляем 3D спектр
+  if (spectrumMesh && spectrumAnalyzer) {
+    const spectrumData = spectrumAnalyzer.getFrequencySpectrum(82, 1200, SPECTRUM_BINS)
+    updateSpectrumVertices(spectrumData)
+
+    // Dominant frequency (индекс max бина / total бинов)
+    let maxVal = 0
+    let maxIdx = 0
+    for (let i = 0; i < spectrumData.length; i++) {
+      if (spectrumData[i] > maxVal) {
+        maxVal = spectrumData[i]
+        maxIdx = i
+      }
+    }
+    const dominantFreq = spectrumData.length > 0 ? maxIdx / spectrumData.length : 0.5
+
+    // Обновляем uniforms
+    spectrumMaterial.uniforms.uTime.value = now * 0.001
+    spectrumMaterial.uniforms.uDominantFreq.value = dominantFreq
+    spectrumMaterial.uniforms.uBoost.value = smoothedAudioBoost
+  }
+
   // Рендерим сцену через post-processing composer
   // GhostTrailPass автоматически управляет ping-pong буферами внутри
   // Multi-String Support: все активные струны рендерятся через RenderPass,
@@ -755,6 +923,22 @@ watch(
   { deep: true },
 )
 
+// S7: Watch для инициализации spectrum analyzer
+watch(
+  () => props.analyserNode,
+  (node) => {
+    if (node && !spectrumAnalyzer) {
+      spectrumAnalyzer = useFrequencyAnalyzer(node)
+      spectrumAnalyzer.startAnalysis()
+    } else if (!node && spectrumAnalyzer) {
+      spectrumAnalyzer.stopAnalysis()
+      spectrumAnalyzer = null
+      // Сброс спектра
+      smoothedSpectrum.fill(0)
+    }
+  },
+)
+
 // Watch для обновления bloom параметров
 watch(bloomIntensity, (newIntensity) => {
   if (bloomPass) {
@@ -830,6 +1014,24 @@ onUnmounted(() => {
     gridLines.geometry.dispose()
     gridLines.material.dispose()
     gridLines = null
+  }
+
+  // S7: Dispose spectrum mesh
+  if (spectrumMesh) {
+    scene.remove(spectrumMesh)
+    if (spectrumGeometry) {
+      spectrumGeometry.dispose()
+      spectrumGeometry = null
+    }
+    if (spectrumMaterial) {
+      spectrumMaterial.dispose()
+      spectrumMaterial = null
+    }
+    spectrumMesh = null
+  }
+  if (spectrumAnalyzer) {
+    spectrumAnalyzer.stopAnalysis()
+    spectrumAnalyzer = null
   }
 
   // Dispose particle system

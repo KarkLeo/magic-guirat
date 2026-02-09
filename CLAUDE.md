@@ -174,12 +174,12 @@ Microphone → AudioContext → AnalyserNode → [YIN Algorithm | Chromagram] �
 
 ## Project Documentation
 
-- **`.memory/README.md`** — documentation system overview
-- **`.memory/currentWork.md`** — current sprint status (Sprint 4 ✅ complete, Sprint 5+ planned)
-- **`.memory/progress.md`** — detailed progress tracker for completed sprints
-- **`.memory/backlog.md`** — sprint backlog and task planning
-- **`.memory/currentInput.md`** — user ideas and task descriptions
-- **`.memory/visualDesignSpec.md`** — full visual design specification for visual overhaul
+- **`_memory/README.md`** — documentation system overview
+- **`_memory/currentWork.md`** — current sprint status (Sprint 7 ✅ complete, Sprint 8+ planned)
+- **`_memory/progress.md`** — detailed progress tracker for completed sprints
+- **`_memory/backlog.md`** — sprint backlog and task planning
+- **`_memory/currentInput.md`** — user ideas and task descriptions
+- **`_memory/visualDesignSpec.md`** — full visual design specification for visual overhaul
 - **`MEMORY.md` (auto-memory)** — key architectural decisions and lessons learned
 
 ---
@@ -206,24 +206,16 @@ Microphone → AudioContext → AnalyserNode → [YIN Algorithm | Chromagram] �
 
 ---
 
-## Future Roadmap (Sprints 5+)
+## Future Roadmap (Sprints 4–9)
 
-Visual overhaul with advanced WebGL effects (Sprint 4 ✅ complete):
+Visual overhaul with advanced WebGL effects:
 
-**✅ Sprint 4 (DONE):**
-- Post-processing pipeline (EffectComposer + UnrealBloomPass)
-- GLSL shaders for strings (wave oscillation, radial glow, fresnel, shimmer)
-- Centralized color palette (COLORS, GRADIENTS, ColorUtils)
-- Bloom settings UI (threshold, radius, intensity controls)
+**✅ Sprint 4 (DONE):** Post-processing, string shaders, color palette, bloom UI  
+**✅ Sprint 5 (DONE):** Ghost trails (FBO), enhanced string physics  
+**✅ Sprint 6 (DONE):** Background layer, stars, nebulae, grid, audio reactivity  
+**✅ Sprint 7 (DONE):** Advanced spectrum (3D continuous, gradient fade, dynamic color shift)  
 
-**⏳ Sprint 5 (Planned):**
-- Ghost trails effect (FBO accumulation)
-- Enhanced string physics and decay
+**⏳ Sprint 8 (Planned):** UI refresh, chord display animation, particle burst on attack  
+**⏳ Sprint 9 (Planned):** Performance optimization, adaptive quality  
 
-**⏳ Sprint 6+:**
-- Background particles (cosmic dust), nebula effects
-- Continuous spectrum visualizer (replace bar chart)
-- UI refresh, particle bursts on attack, ripple effects
-- Performance optimization, adaptive quality settings
-
-See `.memory/progress.md` and `.memory/visualDesignSpec.md` for detailed information.
+See `_memory/progress.md` and `_memory/visualDesignSpec.md` for detailed information.

@@ -18,6 +18,7 @@
       :detection-mode="detectionMode"
       :is-active="isCapturing"
       :rms-level="audioLevel"
+      :analyser-node="analyserNode"
     />
 
     <!-- Отображение аккорда / ноты -->
@@ -32,18 +33,6 @@
       />
     </transition>
 
-    <!-- Визуализатор спектра -->
-    <transition name="fade">
-      <FrequencySpectrumVisualizer
-        v-if="isCapturing && analyserNode"
-        :analyser-node="analyserNode"
-        :is-active="isCapturing"
-        :detected-pitch="detectedPitch"
-        :pitch-confidence="pitchConfidence"
-        :detected-note="detectedNote"
-        :is-essentia-loaded="false"
-      />
-    </transition>
   </div>
 </template>
 
@@ -59,7 +48,6 @@ import { noteNameToPitchClass } from '@/utils/noteUtils'
 import AudioCaptureButton from './AudioCaptureButton.vue'
 import BackgroundLayer from './BackgroundLayer.vue'
 import GuitarStringsVisualization from './GuitarStringsVisualization.vue'
-import FrequencySpectrumVisualizer from './FrequencySpectrumVisualizer.vue'
 import ChordNameDisplay from './ChordNameDisplay.vue'
 
 // Настройки

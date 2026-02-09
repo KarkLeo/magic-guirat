@@ -223,13 +223,14 @@
 
 ## 🔄 In Progress
 
-_Нет активных задач - Sprint 4 завершён!_
+_Нет активных задач — Sprint 7 завершён._
 
 ---
 
 ## 📋 Pending Tasks
 
-_Все задачи Sprint 4 выполнены. Планирование Sprint 5 будет после review._
+- Sprint 8: UI Refresh & Extra Animations
+- Sprint 9: Performance Optimization
 
 ---
 
@@ -276,3 +277,56 @@ _Все задачи Sprint 4 выполнены. Планирование Sprin
 
 ### Risks
 - Нет выявленных рисков на текущий момент
+
+---
+
+# Sprint 7 Progress Tracker
+
+## Цель Sprint 7
+Плавный, растворяющийся 3D спектр вместо дискретных столбиков (Advanced Spectrum Visualizer)
+
+**Статус:** 🟢 ✅ Завершён  
+**Завершён:** 2026-02-10  
+**Прогресс:** 5/5 задач выполнено (100%)
+
+---
+
+## ✅ Completed Tasks
+
+### S7-T1: Continuous Spectrum Geometry ✅
+- BufferGeometry с 128 бинами, два ряда вершин (низ/верх), indexed triangles (quad strip).
+- Обновление вершин в animation loop: getFrequencySpectrum(82, 1200, SPECTRUM_BINS).
+- Catmull-Rom сглаживание (catmullRomSmooth) + lerp (0.25) для плавных переходов.
+- **Файлы:** `GuitarStringsVisualization.vue` (createSpectrumMesh, updateSpectrumVertices).
+
+### S7-T2: Gradient Fade Shader ✅
+- spectrumFragment.glsl: 4-stop градиент (cyan → indigo → pink → amber), vertical/horizontal fade, shimmer.
+- spectrumVertex.glsl: passthrough UV, secondary wave для верхних вершин.
+- **Файлы:** `src/shaders/spectrumFragment.glsl`, `src/shaders/spectrumVertex.glsl`.
+
+### S7-T3: Dynamic Color Shift ✅
+- Вычисление dominant frequency (индекс max бина / длина массива).
+- Uniform uDominantFreq передаётся в shader, сдвиг градиента (gradPos = vUv.x + uDominantFreq * 0.15).
+- **Файлы:** GuitarStringsVisualization.vue (animate), spectrumFragment.glsl.
+
+### S7-T4: Secondary Wave Animation ✅
+- В vertex shader: sin(uTime * 0.8 + pos.x * 0.5) * 0.15 для верхнего ряда (isTop).
+- **Файлы:** spectrumVertex.glsl.
+
+### S7-T5: Integration в Main Layout ✅
+- Спектр создаётся в initThreeJS(), рендерится в той же сцене со струнами (z=0, y=SPECTRUM_Y_BASE).
+- Данные от useFrequencyAnalyzer(analyserNode), watch на props.analyserNode для start/stop анализа.
+- Cleanup: dispose geometry/material, обнуление spectrumGeometry/spectrumMaterial/spectrumMesh.
+- **Файлы:** GuitarStringsVisualization.vue.
+
+---
+
+## 🎯 Sprint 7 Definition of Done
+
+- [x] Новый 3D спектр работает ✅
+- [x] Плавное растворение к краям (vertical + horizontal fade) ✅
+- [x] Градиент с динамическим сдвигом (uDominantFreq) ✅
+- [x] Вторичные волны в vertex shader ✅
+- [x] Интеграция в layout (сцена со струнами) ✅
+- [x] Performance: ≥55 FPS ✅
+- [x] Cleanup при onUnmounted ✅

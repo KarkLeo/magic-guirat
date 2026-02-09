@@ -1,11 +1,11 @@
-# .memory - Project Management System
+# _memory - Project Management System
 
 Система управления проектом для совместной работы с Claude Code.
 
 ## Структура
 
 ```
-.memory/
+_memory/
 ├── README.md           # Этот файл - описание системы
 ├── currentInput.md     # Твои идеи и текущая задача для Claude
 ├── currentWork.md      # Текущая работа Claude (автообновляется)
