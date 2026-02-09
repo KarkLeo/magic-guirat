@@ -1,9 +1,9 @@
 # Текущая Работа - Visual Overhaul (Sprints 4-9)
 
 **Дата начала:** 2026-02-07
-**Текущий спринт:** Sprint 5 🔵 IN PROGRESS
-**Текущая дата:** 2026-02-07
-**Статус:** S5-T2 COMPLETE, READY FOR S5-T3
+**Текущий спринт:** Sprint 6 🔵 IN PROGRESS
+**Текущая дата:** 2026-02-09
+**Статус:** S6-T1 COMPLETE ✅, READY FOR S6-T2
 
 ---
 
@@ -210,29 +210,87 @@
 
 ---
 
+## 🌌 Sprint 6: Background Effects 🔵 IN PROGRESS
+
+### Статус: IN PROGRESS (2026-02-09)
+
+### Задачи
+
+| ID | Задача | Приоритет | Оценка | Фактически | Статус |
+|----|--------|-----------|--------|-----------|--------|
+| S6-T1 | Background Layer Component | P0 | 2h | 1.5h | ✅ DONE |
+| S6-T2 | Particle System - Stars | P0 | 3-4h | - | ⬜ TODO |
+| S6-T3 | Nebula Effect | P1 | 3h | - | ⬜ TODO |
+| S6-T4 | Geometric Grid Lines | P2 | 2h | - | ⬜ TODO |
+| S6-T5 | Audio Reactivity для Фона | P1 | 2h | - | ⬜ TODO |
+
+**Блокеры:** нет
+**Velocity:** 1.5 часа (1/5 задач завершено)
+**Завершено:** 20% (1/5 задач)
+
+### S6-T1: Background Layer Component ✅ COMPLETE
+
+**Что сделано:**
+- ✅ Создан компонент BackgroundLayer.vue с Three.js renderer
+- ✅ CSS gradient background (purple → blue → darkest)
+- ✅ Прозрачный canvas (alpha: true) поверх CSS gradient
+- ✅ Animation loop с requestAnimationFrame
+- ✅ Responsive resize handling (updateProjectionMatrix + renderer.setSize)
+- ✅ Proper cleanup в onUnmounted (dispose renderer, geometries, materials)
+- ✅ Props для audio reactivity (rmsLevel) с watcher (для S6-T5)
+- ✅ Z-index: -1 (рендерится за струнами)
+- ✅ Интеграция в AudioAnalyzerView.vue (первый слой в template)
+- ✅ TypeScript type-check пройден
+- ✅ ESLint без warnings (JavaScript синтаксис)
+
+**Файлы:**
+- `src/components/BackgroundLayer.vue` - новый компонент (194 строки)
+- `src/components/AudioAnalyzerView.vue` - интеграция (импорт + template)
+
+**Результат:**
+- Космический градиентный фон отображается за всеми элементами
+- Готовая структура для добавления частиц (S6-T2), туманностей (S6-T3), линий (S6-T4)
+- Audio reactivity watcher подготовлен для S6-T5
+- Performance стабильный (отдельный renderer не влияет на FPS)
+
+---
+
 ## 📝 Следующие Действия
 
-### Sprint 5 Complete! 🎉
+### Sprint 6 - Task 2: Particle System (Stars) ⬜ NEXT
 
-**Sprint 5 завершен полностью (100%):**
-- ✅ S5-T1: Enhanced String Physics
-- ✅ S5-T2: FBO Setup для Ghost Trails
-- ✅ S5-T3: Ghost Trail Shader
-- ✅ S5-T4: Multi-String Support
-- ✅ S5-T5: Settings UI для Ghost Trails
+**Цель:** Создать систему частиц для космической пыли и звезд (200-300 частиц)
 
-### Next Sprint
-**Sprint 6: Background Effects** (4-5 дней) — космическая атмосфера с частицами и туманностями
+**Что нужно сделать:**
+1. Создать BufferGeometry с Float32Array (positions, colors, sizes)
+2. ShaderMaterial для частиц с мерцанием (twinkle effect)
+3. Вертексный шейдер: parallax движение (sin/cos по X/Y)
+4. Фрагментный шейдер: circular shape + twinkle анимация
+5. Цвета: white (70%), cyan (15%), pink (15%)
+6. Точечный размер: 1-4px с depth attenuation
 
-3. **Визуальная проверка S5-T1**
-   - Открыть http://localhost:5173/
-   - Проверить естественность колебаний
-   - Убедиться в отсутствии артефактов
-   - Проверить затухание разных струн
+**Файлы для создания:**
+- `src/shaders/particleVertex.glsl` (новый)
+- `src/shaders/particleFragment.glsl` (новый)
 
-### После Sprint 5
-- Sprint 6: Background Effects (частицы, туманности)
-- Sprint 7: Advanced Spectrum (плавный растворяющийся спектр)
+**Файлы для редактирования:**
+- `src/components/BackgroundLayer.vue` (добавить particle system)
+
+**Acceptance Criteria:**
+- 200-300 частиц на сцене
+- Плавное параллакс движение
+- Мерцание (twinkle effect)
+- Цвета из палитры
+- Performance не падает (≥55 FPS)
+
+**Estimate:** 3-4 часа
+
+---
+
+### После Sprint 6
+- Sprint 7: Advanced Spectrum (плавный растворяющийся спектр 3D)
+- Sprint 8: UI Refresh + Extra Animations
+- Sprint 9: Performance Optimization
 
 ---
 
@@ -282,13 +340,13 @@
 
 ### Overall Progress
 - Sprint 4: 100% ✅ (5/5 задач завершено)
-- Sprint 5: 0% (следующий)
-- Sprint 6: 0%
+- Sprint 5: 100% ✅ (5/5 задач завершено)
+- Sprint 6: 20% 🔵 (1/5 задач завершено, S6-T1 DONE)
 - Sprint 7: 0%
 - Sprint 8: 0%
 - Sprint 9: 0%
 
-**Total:** 16.7% (1 из 6 спринтов завершено, готово к Sprint 5)
+**Total:** 37% (2 спринта завершено + 20% Sprint 6)
 
 ---
 
@@ -395,5 +453,5 @@
 
 ---
 
-**Last Updated:** 2026-02-07 (Sprint 4 завершён)
-**Next Review:** После завершения Sprint 5 (Ghost Trails)
+**Last Updated:** 2026-02-09 (Sprint 5 завершён, Sprint 6 начат - S6-T1 DONE)
+**Next Review:** После завершения Sprint 6 (Background Effects)
