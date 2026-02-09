@@ -109,6 +109,69 @@
               <span>Большой</span>
             </div>
           </div>
+
+          <!-- Divider -->
+          <div class="settings-divider"></div>
+
+          <!-- Ghost Opacity -->
+          <div class="settings-section">
+            <label class="settings-label">
+              Прозрачность призраков
+              <span class="settings-value">{{ formattedGhostOpacity }}</span>
+            </label>
+            <input
+              v-model.number="ghostOpacity"
+              type="range"
+              min="0.0"
+              max="1.0"
+              step="0.05"
+              class="settings-range"
+            />
+            <div class="settings-range-labels">
+              <span>Прозрачные</span>
+              <span>Видимые</span>
+            </div>
+          </div>
+
+          <!-- Ghost Fade Speed -->
+          <div class="settings-section">
+            <label class="settings-label">
+              Затухание призраков
+              <span class="settings-value">{{ formattedGhostFadeSpeed }}</span>
+            </label>
+            <input
+              v-model.number="ghostFadeSpeed"
+              type="range"
+              min="0.01"
+              max="0.2"
+              step="0.01"
+              class="settings-range"
+            />
+            <div class="settings-range-labels">
+              <span>Медленное</span>
+              <span>Быстрое</span>
+            </div>
+          </div>
+
+          <!-- Ghost Blur -->
+          <div class="settings-section">
+            <label class="settings-label">
+              Размытие призраков
+              <span class="settings-value">{{ formattedGhostBlur }}</span>
+            </label>
+            <input
+              v-model.number="ghostBlur"
+              type="range"
+              min="0.0"
+              max="5.0"
+              step="0.1"
+              class="settings-range"
+            />
+            <div class="settings-range-labels">
+              <span>Четкие</span>
+              <span>Дымные</span>
+            </div>
+          </div>
         </div>
 
         <div class="settings-footer">
@@ -140,13 +203,27 @@ const onKeydown = (e) => {
 onMounted(() => document.addEventListener('keydown', onKeydown))
 onUnmounted(() => document.removeEventListener('keydown', onKeydown))
 
-const { selectedDeviceId, noiseThreshold, bloomIntensity, bloomThreshold, bloomRadius, availableDevices, refreshDevices, resetToDefaults } =
-  useSettings()
+const {
+  selectedDeviceId,
+  noiseThreshold,
+  bloomIntensity,
+  bloomThreshold,
+  bloomRadius,
+  ghostOpacity,
+  ghostFadeSpeed,
+  ghostBlur,
+  availableDevices,
+  refreshDevices,
+  resetToDefaults
+} = useSettings()
 
 const formattedThreshold = computed(() => noiseThreshold.value.toFixed(3))
 const formattedBloom = computed(() => bloomIntensity.value.toFixed(1))
 const formattedThresholdValue = computed(() => bloomThreshold.value.toFixed(2))
 const formattedRadiusValue = computed(() => bloomRadius.value.toFixed(2))
+const formattedGhostOpacity = computed(() => ghostOpacity.value.toFixed(2))
+const formattedGhostFadeSpeed = computed(() => ghostFadeSpeed.value.toFixed(3))
+const formattedGhostBlur = computed(() => ghostBlur.value.toFixed(1))
 
 // Обновляем список устройств при открытии панели
 watch(
@@ -224,6 +301,17 @@ const handleReset = () => {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+.settings-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(168, 181, 255, 0.2) 50%,
+    transparent
+  );
+  margin: 0.5rem 0;
 }
 
 .settings-label {

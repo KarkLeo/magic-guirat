@@ -9,6 +9,9 @@ interface SettingsData {
   bloomIntensity: number
   bloomThreshold: number
   bloomRadius: number
+  ghostOpacity: number
+  ghostFadeSpeed: number
+  ghostBlur: number
 }
 
 const DEFAULTS: SettingsData = {
@@ -17,6 +20,9 @@ const DEFAULTS: SettingsData = {
   bloomIntensity: 1.5,  // Оптимальное значение для магического свечения
   bloomThreshold: 0.15,  // Порог яркости для bloom эффекта
   bloomRadius: 0.8,      // Радиус размытия bloom
+  ghostOpacity: 0.7,     // Прозрачность ghost trails
+  ghostFadeSpeed: 0.05,  // Скорость затухания ghost trails (2-3 сек)
+  ghostBlur: 1.5,        // Интенсивность размытия ghost trails
 }
 
 // Module-level shared state (singleton)
@@ -25,6 +31,9 @@ const noiseThreshold = ref<number>(DEFAULTS.noiseThreshold)
 const bloomIntensity = ref<number>(DEFAULTS.bloomIntensity)
 const bloomThreshold = ref<number>(DEFAULTS.bloomThreshold)
 const bloomRadius = ref<number>(DEFAULTS.bloomRadius)
+const ghostOpacity = ref<number>(DEFAULTS.ghostOpacity)
+const ghostFadeSpeed = ref<number>(DEFAULTS.ghostFadeSpeed)
+const ghostBlur = ref<number>(DEFAULTS.ghostBlur)
 const availableDevices = ref<MediaDeviceInfo[]>([])
 
 // Load from localStorage
@@ -38,6 +47,9 @@ function loadFromStorage(): void {
       if (parsed.bloomIntensity !== undefined) bloomIntensity.value = parsed.bloomIntensity
       if (parsed.bloomThreshold !== undefined) bloomThreshold.value = parsed.bloomThreshold
       if (parsed.bloomRadius !== undefined) bloomRadius.value = parsed.bloomRadius
+      if (parsed.ghostOpacity !== undefined) ghostOpacity.value = parsed.ghostOpacity
+      if (parsed.ghostFadeSpeed !== undefined) ghostFadeSpeed.value = parsed.ghostFadeSpeed
+      if (parsed.ghostBlur !== undefined) ghostBlur.value = parsed.ghostBlur
     }
   } catch (e) {
     // ignored — используем дефолты
@@ -54,7 +66,10 @@ function persist(): void {
         noiseThreshold: noiseThreshold.value,
         bloomIntensity: bloomIntensity.value,
         bloomThreshold: bloomThreshold.value,
-        bloomRadius: bloomRadius.value
+        bloomRadius: bloomRadius.value,
+        ghostOpacity: ghostOpacity.value,
+        ghostFadeSpeed: ghostFadeSpeed.value,
+        ghostBlur: ghostBlur.value
       })
     )
   } catch (e) {
@@ -69,6 +84,9 @@ watch(noiseThreshold, persist)
 watch(bloomIntensity, persist)
 watch(bloomThreshold, persist)
 watch(bloomRadius, persist)
+watch(ghostOpacity, persist)
+watch(ghostFadeSpeed, persist)
+watch(ghostBlur, persist)
 
 export function useSettings(): UseSettingsReturn {
   const refreshDevices = async (): Promise<void> => {
@@ -87,6 +105,9 @@ export function useSettings(): UseSettingsReturn {
     bloomIntensity.value = DEFAULTS.bloomIntensity
     bloomThreshold.value = DEFAULTS.bloomThreshold
     bloomRadius.value = DEFAULTS.bloomRadius
+    ghostOpacity.value = DEFAULTS.ghostOpacity
+    ghostFadeSpeed.value = DEFAULTS.ghostFadeSpeed
+    ghostBlur.value = DEFAULTS.ghostBlur
   }
 
   return {
@@ -95,6 +116,9 @@ export function useSettings(): UseSettingsReturn {
     bloomIntensity,
     bloomThreshold,
     bloomRadius,
+    ghostOpacity,
+    ghostFadeSpeed,
+    ghostBlur,
     availableDevices,
     refreshDevices,
     resetToDefaults

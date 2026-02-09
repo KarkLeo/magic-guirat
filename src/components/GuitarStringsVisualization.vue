@@ -90,7 +90,7 @@ const PARTICLE_LIFETIME_MAX = 2.2
 const PARTICLE_BASE_SIZE = 0.38
 
 // Настройки из useSettings
-const { bloomIntensity, bloomThreshold, bloomRadius } = useSettings()
+const { bloomIntensity, bloomThreshold, bloomRadius, ghostOpacity, ghostFadeSpeed, ghostBlur } = useSettings()
 
 /**
  * Создаёт FBO систему для Ghost Trails эффекта
@@ -580,6 +580,25 @@ watch(bloomThreshold, (newThreshold) => {
 watch(bloomRadius, (newRadius) => {
   if (bloomPass) {
     bloomPass.radius = newRadius
+  }
+})
+
+// Watch для обновления ghost trail параметров
+watch(ghostOpacity, (newOpacity) => {
+  if (ghostTrailPass) {
+    ghostTrailPass.setOpacity(newOpacity)
+  }
+})
+
+watch(ghostFadeSpeed, (newFadeSpeed) => {
+  if (ghostTrailPass) {
+    ghostTrailPass.setFadeSpeed(newFadeSpeed)
+  }
+})
+
+watch(ghostBlur, (newBlur) => {
+  if (ghostTrailPass) {
+    ghostTrailPass.setBlurAmount(newBlur)
   }
 })
 

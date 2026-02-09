@@ -8,6 +8,7 @@ uniform float uFadeSpeed;       // Скорость затухания (0.01 - 0
 uniform float uOpacity;         // Общая прозрачность эффекта (0.0 - 1.0, default: 0.7)
 uniform vec2 uDriftOffset;      // Смещение UV для "дымного" эффекта (drift вверх)
 uniform vec2 uResolution;       // Разрешение экрана для box blur
+uniform float uBlurAmount;      // Интенсивность размытия (0.0 - 5.0, default: 1.5)
 
 varying vec2 vUv;
 
@@ -45,7 +46,7 @@ void main() {
 
   // Применяем легкое размытие к previous для дымного эффекта
   vec2 pixelSize = 1.0 / uResolution;
-  vec4 previous = boxBlur(tPrevious, driftedUv, pixelSize, 1.5);
+  vec4 previous = boxBlur(tPrevious, driftedUv, pixelSize, uBlurAmount);
 
   // Экспоненциальное затухание
   float fadeFactor = 1.0 - uFadeSpeed;

@@ -59,9 +59,9 @@
 
 ---
 
-## 🚀 Sprint 5: Enhanced Strings + Ghost Trails 🔵 IN PROGRESS
+## 🚀 Sprint 5: Enhanced Strings + Ghost Trails ✅ COMPLETE
 
-### Статус: IN PROGRESS (2026-02-07)
+### Статус: COMPLETE (2026-02-09)
 
 ### Задачи
 
@@ -71,11 +71,11 @@
 | S5-T2 | FBO Setup для Ghost Trails | P0 | 4-5h | 2.5h | ✅ DONE |
 | S5-T3 | Ghost Trail Shader | P0 | 3-4h | 1.5h | ✅ DONE |
 | S5-T4 | Multi-String Support для Ghost | P1 | 2h | 0.5h | ✅ DONE |
-| S5-T5 | Settings для Ghost Trails | P2 | 1.5h | - | ⬜ TODO |
+| S5-T5 | Settings для Ghost Trails | P2 | 1.5h | 1.0h | ✅ DONE |
 
 **Блокеры:** нет
-**Velocity:** 6 часов (4/5 задач завершено)
-**Завершено:** 80%
+**Velocity:** 7 часов (5/5 задач завершено)
+**Завершено:** 100% ✅
 
 ### S5-T1: Enhanced String Physics ✅ COMPLETE
 
@@ -176,16 +176,53 @@
 - Нет артефактов при наложении (аддитивное смешивание)
 - Работает "из коробки" благодаря архитектуре pipeline
 
+### S5-T5: Settings для Ghost Trails ✅ COMPLETE
+
+**Что сделано:**
+- ✅ Добавлены три новых параметра в useSettings:
+  - ghostOpacity (0.0-1.0, default: 0.7)
+  - ghostFadeSpeed (0.01-0.2, default: 0.05)
+  - ghostBlur (0.0-5.0, default: 1.5)
+- ✅ localStorage persistence для всех параметров
+- ✅ Обновлен shader с uniform uBlurAmount
+- ✅ Добавлен метод setBlurAmount() в GhostTrailPass
+- ✅ Watchers в GuitarStringsVisualization для real-time обновления
+- ✅ UI слайдеры в SettingsPanel с метками и форматированием
+- ✅ Divider для визуального разделения секций bloom и ghost trails
+- ✅ TypeScript типизация обновлена
+- ✅ ESLint warnings устранены
+
+**Файлы:**
+- `src/composables/useSettings.ts` - добавлены ghost trails настройки
+- `src/types/index.ts` - обновлен UseSettingsReturn интерфейс
+- `src/shaders/trailAccumulation.glsl` - добавлен uniform uBlurAmount
+- `src/utils/GhostTrailPass.js` - добавлен метод setBlurAmount()
+- `src/components/GuitarStringsVisualization.vue` - watchers для real-time обновления
+- `src/components/SettingsPanel.vue` - UI контролы с тремя слайдерами
+
+**Результат:**
+- Пользователь может настраивать прозрачность призраков (0.0-1.0)
+- Пользователь может контролировать скорость затухания (0.01-0.2)
+- Пользователь может регулировать размытие (0.0-5.0)
+- Все настройки сохраняются в localStorage
+- Real-time обновление без перезагрузки
+- Интуитивные метки ("Прозрачные" → "Видимые", "Медленное" → "Быстрое", "Четкие" → "Дымные")
+
 ---
 
 ## 📝 Следующие Действия
 
-### Immediate Next Steps (Sprint 5)
-1. **S5-T5: Settings для Ghost Trails** (1.5h) ⏭️ NEXT
-   - Добавить контролы в SettingsPanel
-   - Слайдеры: ghostOpacity, ghostFadeSpeed, ghostBlur
-   - Real-time обновление эффекта
-   - Сохранение в localStorage
+### Sprint 5 Complete! 🎉
+
+**Sprint 5 завершен полностью (100%):**
+- ✅ S5-T1: Enhanced String Physics
+- ✅ S5-T2: FBO Setup для Ghost Trails
+- ✅ S5-T3: Ghost Trail Shader
+- ✅ S5-T4: Multi-String Support
+- ✅ S5-T5: Settings UI для Ghost Trails
+
+### Next Sprint
+**Sprint 6: Background Effects** (4-5 дней) — космическая атмосфера с частицами и туманностями
 
 3. **Визуальная проверка S5-T1**
    - Открыть http://localhost:5173/

@@ -39,6 +39,7 @@ export class GhostTrailPass extends Pass {
         uOpacity: { value: 0.7 },      // Прозрачность ghost trails
         uDriftOffset: { value: new THREE.Vector2(0, 0.001) }, // Upward drift для дымного эффекта
         uResolution: { value: new THREE.Vector2(width, height) }, // Разрешение для box blur
+        uBlurAmount: { value: 1.5 },   // Интенсивность размытия
       },
       vertexShader: `
         varying vec2 vUv;
@@ -154,5 +155,9 @@ export class GhostTrailPass extends Pass {
 
   setDriftOffset(x, y) {
     this.material.uniforms.uDriftOffset.value.set(x, y)
+  }
+
+  setBlurAmount(value) {
+    this.material.uniforms.uBlurAmount.value = value
   }
 }

@@ -97,6 +97,9 @@ export interface UseSettingsReturn {
   bloomIntensity: Ref<number>
   bloomThreshold: Ref<number>
   bloomRadius: Ref<number>
+  ghostOpacity: Ref<number>
+  ghostFadeSpeed: Ref<number>
+  ghostBlur: Ref<number>
   availableDevices: Ref<MediaDeviceInfo[]>
   refreshDevices: () => Promise<void>
   resetToDefaults: () => void
