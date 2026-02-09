@@ -14,7 +14,7 @@ const props = defineProps({
 
 // === CONSTANTS ===
 const NUM_STARS = 800 // Количество звезд
-const STAR_SPREAD = 100 // Радиус распределения звезд
+const STAR_SPREAD = 40 // Радиус распределения звезд (уменьшен для видимости)
 const STAR_DEPTH = 50 // Глубина распределения по Z
 
 // Template refs
@@ -62,6 +62,7 @@ function initThreeJS() {
   })
   renderer.setSize(width, height)
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer.setClearColor(0x000000, 0) // Черный с альфой 0 (полностью прозрачный)
 
   // S6-T2: Создаём звезды
   createStarParticles()
@@ -83,23 +84,37 @@ function createStarParticles() {
   const sizes = new Float32Array(NUM_STARS)
   const twinkleOffsets = new Float32Array(NUM_STARS)
 
-  // Генерация звезд с случайными параметрами
-  for (let i = 0; i < NUM_STARS; i++) {
+  // DEBUG: Первые 10 звезд - тестовые (большие, яркие, в центре)
+  for (let i = 0; i < 10; i++) {
+    positions[i * 3 + 0] = (i - 5) * 2 // x: от -10 до 10
+    positions[i * 3 + 1] = 0 // y: центр
+    positions[i * 3 + 2] = -80 // z: прямо впереди камеры
+    alphas[i] = 1.0 // Полностью непрозрачные
+    sizes[i] = 10.0 // ОЧЕНЬ большие
+    twinkleOffsets[i] = 0
+  }
+
+  // Генерация остальных звезд с случайными параметрами
+  for (let i = 10; i < NUM_STARS; i++) {
     // Позиция: равномерное распределение в 3D пространстве
     const theta = Math.random() * Math.PI * 2 // Угол
     const radius = Math.random() * STAR_SPREAD // Радиус от центра
-    const z = (Math.random() - 0.5) * STAR_DEPTH // Глубина
+    // Z: звезды должны быть ВПЕРЕДИ камеры в направлении -Z
+    // Камера на z=50, звезды от -50 до -150 (впереди камеры по направлению взгляда)
+    const z = -50 - Math.random() * STAR_DEPTH * 2 // От -50 до -150
 
     positions[i * 3 + 0] = Math.cos(theta) * radius // x
     positions[i * 3 + 1] = Math.sin(theta) * radius // y
     positions[i * 3 + 2] = z
 
-    // Альфа: большинство звезд тусклые, некоторые яркие
+    // Альфа: большинство звезд яркие для видимости
     const brightness = Math.random()
-    alphas[i] = brightness < 0.7 ? 0.3 + Math.random() * 0.4 : 0.8 + Math.random() * 0.2
+    // Увеличены для видимости: 0.6-1.0
+    alphas[i] = brightness < 0.7 ? 0.6 + Math.random() * 0.3 : 0.9 + Math.random() * 0.1
 
     // Размер: различные размеры (маленькие и большие звезды)
-    sizes[i] = brightness < 0.7 ? 1.0 + Math.random() * 1.5 : 2.0 + Math.random() * 1.5
+    // Увеличены для лучшей видимости: 2-6px
+    sizes[i] = brightness < 0.7 ? 2.0 + Math.random() * 2.0 : 4.0 + Math.random() * 2.0
 
     // Twinkle offset: случайная фаза для асинхронного мерцания
     twinkleOffsets[i] = Math.random() * Math.PI * 2
@@ -147,7 +162,9 @@ function animate() {
   // TODO (S6-T3): Animate nebulae (breathing, movement)
   // TODO (S6-T5): Audio reactivity
 
-  renderer.render(scene, camera)
+  if (renderer && scene && camera) {
+    renderer.render(scene, camera)
+  }
 }
 
 /**
@@ -257,6 +274,7 @@ watch(() => props.rmsLevel, () => {
   left: 0;
   width: 100%;
   height: 100%;
+  pointer-events: none;
 
   /* Космический градиент (из дизайн-спеки) */
   background: linear-gradient(
@@ -273,5 +291,6 @@ canvas {
   left: 0;
   width: 100%;
   height: 100%;
+  pointer-events: none; /* Не блокируем взаимодействие со струнами */
 }
 </style>

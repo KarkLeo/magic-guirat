@@ -17,6 +17,8 @@ import { GhostTrailPass } from '@/utils/GhostTrailPass'
 // Импортируем шейдеры как raw строки
 import stringVertexShader from '@/shaders/stringVertex.glsl?raw'
 import stringFragmentShader from '@/shaders/stringFragment.glsl?raw'
+import starVertexShader from '@/shaders/starVertex.glsl?raw'
+import starFragmentShader from '@/shaders/starFragment.glsl?raw'
 
 const props = defineProps({
   activeStringIndices: {
@@ -51,6 +53,13 @@ let animationFrameId = null
 
 // FBO система для Ghost Trails
 let ghostTrailPass = null // Кастомный pass для ghost trails эффекта
+
+// S6-T2: Star particle system
+let starParticles = null
+let starGeometry = null
+let starMaterial = null
+const NUM_STARS = 800
+const STAR_SPREAD = 60 // Радиус распределения
 
 // Система частиц
 let particleSystem = null
@@ -236,6 +245,9 @@ const initThreeJS = () => {
   )
   composer.addPass(bloomPass)
 
+  // S6-T2: Создаём фоновые звёзды
+  createStarParticles()
+
   // Создаём струны
   createStrings()
 
@@ -245,6 +257,60 @@ const initThreeJS = () => {
   // Запускаем рендеринг
   lastFrameTime = performance.now()
   animate()
+}
+
+/**
+ * S6-T2: Создаёт фоновые звёзды (particle system)
+ * Звёзды рендерятся далеко за струнами для космической атмосферы
+ */
+const createStarParticles = () => {
+  const positions = new Float32Array(NUM_STARS * 3)
+  const alphas = new Float32Array(NUM_STARS)
+  const sizes = new Float32Array(NUM_STARS)
+  const twinkleOffsets = new Float32Array(NUM_STARS)
+
+  for (let i = 0; i < NUM_STARS; i++) {
+    // Равномерное распределение по экрану, далеко за струнами
+    const theta = Math.random() * Math.PI * 2
+    const radius = Math.random() * STAR_SPREAD
+    // Камера на z=18, звёзды далеко позади (z от -30 до -100)
+    const z = -30 - Math.random() * 70
+
+    positions[i * 3 + 0] = Math.cos(theta) * radius
+    positions[i * 3 + 1] = Math.sin(theta) * radius
+    positions[i * 3 + 2] = z
+
+    // Яркость: большинство тусклых, некоторые яркие
+    const brightness = Math.random()
+    alphas[i] = brightness < 0.7 ? 0.4 + Math.random() * 0.3 : 0.8 + Math.random() * 0.2
+
+    // Размеры: 1.5-5px
+    sizes[i] = brightness < 0.7 ? 1.5 + Math.random() * 1.5 : 3.0 + Math.random() * 2.0
+
+    twinkleOffsets[i] = Math.random() * Math.PI * 2
+  }
+
+  starGeometry = new THREE.BufferGeometry()
+  starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+  starGeometry.setAttribute('aAlpha', new THREE.BufferAttribute(alphas, 1))
+  starGeometry.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1))
+  starGeometry.setAttribute('aTwinkleOffset', new THREE.BufferAttribute(twinkleOffsets, 1))
+
+  starMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 },
+      uSpeed: { value: 1.0 },
+    },
+    vertexShader: starVertexShader,
+    fragmentShader: starFragmentShader,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  })
+
+  starParticles = new THREE.Points(starGeometry, starMaterial)
+  starParticles.frustumCulled = false
+  scene.add(starParticles)
 }
 
 /**
@@ -469,6 +535,11 @@ const animate = () => {
     })
   }
 
+  // S6-T2: Обновляем время для star shader (мерцание и drift)
+  if (starMaterial) {
+    starMaterial.uniforms.uTime.value = now
+  }
+
   // Рендерим сцену через post-processing composer
   // GhostTrailPass автоматически управляет ping-pong буферами внутри
   // Multi-String Support: все активные струны рендерятся через RenderPass,
@@ -616,6 +687,14 @@ onUnmounted(() => {
   }
 
   window.removeEventListener('resize', handleResize)
+
+  // Dispose star particles
+  if (starParticles) {
+    scene.remove(starParticles)
+    starGeometry.dispose()
+    starMaterial.dispose()
+    starParticles = null
+  }
 
   // Dispose particle system
   if (particleSystem) {
