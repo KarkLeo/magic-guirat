@@ -100,13 +100,11 @@ const createGhostTrailFBO = () => {
   const w = getViewportWidth()
   const h = getViewportHeight()
 
-  // Создаём кастомный Ghost Trail Pass
+  // Создаём кастомный Ghost Trail Pass с production параметрами:
+  // - fadeSpeed: 0.05 (затухание 2-3 секунды)
+  // - opacity: 0.7 (полупрозрачные призраки)
+  // - driftOffset: (0, 0.001) (плавное поднятие вверх)
   ghostTrailPass = new GhostTrailPass(w, h)
-
-  // Настройки по умолчанию
-  ghostTrailPass.setFadeSpeed(0.05)  // Плавное затухание за 2-3 сек
-  ghostTrailPass.setOpacity(0.7)     // 70% прозрачность
-  ghostTrailPass.setDriftOffset(0, 0.001) // Лёгкий upward drift
 }
 
 /**

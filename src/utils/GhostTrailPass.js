@@ -11,6 +11,9 @@ export class GhostTrailPass extends Pass {
   constructor(width, height) {
     super()
 
+    // Важно: указываем, что pass должен swap buffers
+    this.needsSwap = true
+
     // Создаём два render targets для ping-pong
     const rtOptions = {
       minFilter: THREE.LinearFilter,
@@ -32,9 +35,10 @@ export class GhostTrailPass extends Pass {
       uniforms: {
         tDiffuse: { value: null },     // Текущий кадр (из input buffer)
         tPrevious: { value: this.currentReadTarget.texture }, // Предыдущий накопленный кадр
-        uFadeSpeed: { value: 0.05 },   // Скорость затухания (0.05 = плавное, 2-3 сек)
-        uOpacity: { value: 0.7 },      // Прозрачность эффекта
-        uDriftOffset: { value: new THREE.Vector2(0, 0.001) }, // Upward drift для "дыма"
+        uFadeSpeed: { value: 0.05 },   // Скорость затухания (0.05 = плавное затухание 2-3 сек)
+        uOpacity: { value: 0.7 },      // Прозрачность ghost trails
+        uDriftOffset: { value: new THREE.Vector2(0, 0.001) }, // Upward drift для дымного эффекта
+        uResolution: { value: new THREE.Vector2(width, height) }, // Разрешение для box blur
       },
       vertexShader: `
         varying vec2 vUv;
@@ -44,6 +48,27 @@ export class GhostTrailPass extends Pass {
         }
       `,
       fragmentShader: trailAccumulationShader,
+    })
+
+    // Copy material для простого копирования текстуры (без accumulation)
+    this.copyMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        tDiffuse: { value: null },
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform sampler2D tDiffuse;
+        varying vec2 vUv;
+        void main() {
+          gl_FragColor = texture2D(tDiffuse, vUv);
+        }
+      `,
     })
 
     // Fullscreen quad для рендеринга shader
@@ -63,59 +88,33 @@ export class GhostTrailPass extends Pass {
    * @param {THREE.WebGLRenderTarget} readBuffer - input buffer (текущий кадр)
    */
   render(renderer, writeBuffer, readBuffer) {
-    // 1. Обновляем uniforms: текущий кадр и предыдущий накопленный
+    // ШАГ 1: Рендерим accumulation shader в currentWriteTarget
     this.material.uniforms.tDiffuse.value = readBuffer.texture
     this.material.uniforms.tPrevious.value = this.currentReadTarget.texture
 
-    // 2. Рендерим accumulation shader в currentWriteTarget
-    // Это создаёт новый накопленный кадр (current + previous с fade)
-    const oldTarget = renderer.getRenderTarget()
     renderer.setRenderTarget(this.currentWriteTarget)
+    // НЕ очищаем буфер! Это сохранит накопление
+    this.quad.material = this.material
     renderer.render(this.scene, this.camera)
-    renderer.setRenderTarget(oldTarget)
 
-    // 3. Копируем результат в output buffer для следующего pass (bloom)
+    // ШАГ 2: Копируем результат в output (writeBuffer или screen) используя copyMaterial
+    this.copyMaterial.uniforms.tDiffuse.value = this.currentWriteTarget.texture
+
     if (this.renderToScreen) {
       renderer.setRenderTarget(null)
-      renderer.render(this.scene, this.camera)
     } else {
-      // Копируем currentWriteTarget в writeBuffer
-      this.material.uniforms.tDiffuse.value = this.currentWriteTarget.texture
-      this.material.uniforms.tPrevious.value = null // Отключаем blend для финального копирования
-
-      // Временный material для простого копирования
-      const copyMaterial = new THREE.ShaderMaterial({
-        uniforms: {
-          tDiffuse: { value: this.currentWriteTarget.texture },
-        },
-        vertexShader: `
-          varying vec2 vUv;
-          void main() {
-            vUv = uv;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          }
-        `,
-        fragmentShader: `
-          uniform sampler2D tDiffuse;
-          varying vec2 vUv;
-          void main() {
-            gl_FragColor = texture2D(tDiffuse, vUv);
-          }
-        `,
-      })
-
-      const oldMaterial = this.quad.material
-      this.quad.material = copyMaterial
-
       renderer.setRenderTarget(writeBuffer)
-      renderer.render(this.scene, this.camera)
-
-      this.quad.material = oldMaterial
-      copyMaterial.dispose()
-      renderer.setRenderTarget(null)
     }
 
-    // 4. Ping-pong: swap read/write targets для следующего кадра
+    // Очищаем output буфер (это нормально)
+    renderer.clear()
+    this.quad.material = this.copyMaterial
+    renderer.render(this.scene, this.camera)
+
+    // Восстанавливаем material на quad
+    this.quad.material = this.material
+
+    // ШАГ 3: Swap ping-pong targets для следующего кадра
     const temp = this.currentReadTarget
     this.currentReadTarget = this.currentWriteTarget
     this.currentWriteTarget = temp
@@ -127,6 +126,8 @@ export class GhostTrailPass extends Pass {
   setSize(width, height) {
     this.renderTargetA.setSize(width, height)
     this.renderTargetB.setSize(width, height)
+    // Обновляем uniform разрешения для box blur
+    this.material.uniforms.uResolution.value.set(width, height)
   }
 
   /**
@@ -136,6 +137,7 @@ export class GhostTrailPass extends Pass {
     this.renderTargetA.dispose()
     this.renderTargetB.dispose()
     this.material.dispose()
+    this.copyMaterial.dispose()
     this.quad.geometry.dispose()
   }
 
