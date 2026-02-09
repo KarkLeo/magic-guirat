@@ -1,6 +1,8 @@
 // Star Particle Fragment Shader
 // Круглые светящиеся точки с мягкими краями
 
+uniform float uBrightness; // Audio reactive brightness (1.0 = normal)
+
 varying float vAlpha;
 
 void main() {
@@ -19,5 +21,5 @@ void main() {
   // Финальный цвет: белые звезды с легким теплым оттенком
   vec3 starColor = vec3(1.0, 0.98, 0.95); // Слегка теплый белый
 
-  gl_FragColor = vec4(starColor, edge * glow * vAlpha);
+  gl_FragColor = vec4(starColor * uBrightness, edge * glow * vAlpha * uBrightness);
 }

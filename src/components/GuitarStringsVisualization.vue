@@ -67,6 +67,7 @@ let starGeometry = null
 let starMaterial = null
 const NUM_STARS = 800
 const STAR_SPREAD = 60 // Радиус распределения
+let smoothedAudioBoost = 0 // Сглаженный audio boost для плавной пульсации
 
 // S6-T3: Nebula meshes
 const nebulae = [] // Массив {mesh, baseScale, breathSpeed, breathPhase}
@@ -315,6 +316,7 @@ const createStarParticles = () => {
     uniforms: {
       uTime: { value: 0 },
       uSpeed: { value: 1.0 },
+      uBrightness: { value: 1.0 }, // Audio reactive brightness
     },
     vertexShader: starVertexShader,
     fragmentShader: starFragmentShader,
@@ -631,12 +633,15 @@ const animate = () => {
   // S6-T5: Audio reactivity — rmsLevel влияет на фоновые эффекты
   const rms = props.rmsLevel || 0
   const audioBoost = Math.min(rms * 3, 1.0) // Нормализованный 0-1
+  // Сглаживание: быстрый attack (0.15), медленный decay (0.03) — плавная пульсация
+  const lerpFactor = audioBoost > smoothedAudioBoost ? 0.15 : 0.03
+  smoothedAudioBoost += (audioBoost - smoothedAudioBoost) * lerpFactor
 
   // S6-T2: Обновляем время для star shader (мерцание и drift)
   if (starMaterial) {
     starMaterial.uniforms.uTime.value = now
-    // S6-T5: Звёзды ускоряются на peaks
-    starMaterial.uniforms.uSpeed.value = 1.0 + audioBoost * 2.0
+    // S6-T5: Мягкая пульсация яркости звёзд (без ускорения drift)
+    starMaterial.uniforms.uBrightness.value = 1.0 + smoothedAudioBoost * 0.6
   }
 
   // S6-T3: Breathing анимация для туманностей
@@ -644,15 +649,15 @@ const animate = () => {
     const breath = Math.sin(now * neb.breathSpeed + neb.breathPhase) * 0.05 + 1.0 // 0.95-1.05
     neb.mesh.scale.setScalar(neb.baseScale * breath)
     neb.mesh.material.uniforms.uTime.value = now
-    // S6-T5: Туманности становятся ярче на peaks (до +50%)
-    neb.mesh.material.uniforms.uOpacity.value = neb.baseOpacity * (1.0 + audioBoost * 0.5)
+    // S6-T5: Туманности становятся ярче на peaks (до +50%), сглажено
+    neb.mesh.material.uniforms.uOpacity.value = neb.baseOpacity * (1.0 + smoothedAudioBoost * 0.5)
     // Медленное вращение
     neb.mesh.rotation.z += 0.00003
   })
 
   // S6-T5: Grid линии становятся ярче на peaks
   if (gridLines) {
-    gridLines.material.opacity = 0.06 + audioBoost * 0.08
+    gridLines.material.opacity = 0.06 + smoothedAudioBoost * 0.08
   }
 
   // Рендерим сцену через post-processing composer

@@ -17,12 +17,12 @@ interface SettingsData {
 const DEFAULTS: SettingsData = {
   selectedDeviceId: '',
   noiseThreshold: 0.01,
-  bloomIntensity: 1.5,  // Оптимальное значение для магического свечения
-  bloomThreshold: 0.15,  // Порог яркости для bloom эффекта
-  bloomRadius: 0.8,      // Радиус размытия bloom
-  ghostOpacity: 0.7,     // Прозрачность ghost trails
-  ghostFadeSpeed: 0.05,  // Скорость затухания ghost trails (2-3 сек)
-  ghostBlur: 1.5,        // Интенсивность размытия ghost trails
+  bloomIntensity: 1.2,
+  bloomThreshold: 0.15,
+  bloomRadius: 0.1,
+  ghostOpacity: 0.1,
+  ghostFadeSpeed: 0.05,
+  ghostBlur: 1.5,
 }
 
 // Module-level shared state (singleton)
