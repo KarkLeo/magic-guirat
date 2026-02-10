@@ -88,9 +88,6 @@ let smoothedAudioBoost = 0 // Сглаженный audio boost для плавн
 const nebulae = [] // Массив {mesh, baseScale, breathSpeed, breathPhase}
 let sharedNebulaGeometry = null // Shared geometry для всех туманностей
 
-// S6-T4: Grid lines
-let gridLines = null
-
 // S7: Spectrum mesh
 let spectrumMesh = null
 let spectrumGeometry = null
@@ -322,7 +319,6 @@ const initThreeJS = () => {
   // S6: Фоновые эффекты (рендерятся за струнами)
   createStarParticles()  // S6-T2: Звёзды
   createNebulae()        // S6-T3: Туманности
-  createGridLines()      // S6-T4: Сетка
 
   // Создаём струны
   createStrings()
@@ -442,40 +438,6 @@ const createNebulae = () => {
       breathPhase: cfg.breathPhase,
     })
   })
-}
-
-/**
- * S6-T4: Создаёт тонкие геометрические линии для глубины
- * Разреженная сетка с очень низкой прозрачностью
- */
-const createGridLines = () => {
-  const gridMaterial = new THREE.LineBasicMaterial({
-    color: 0x6366f1,
-    transparent: true,
-    opacity: 0.06,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-  })
-
-  const points = []
-  const gridSize = 80
-  const spacing = 10
-
-  // Горизонтальные линии
-  for (let y = -gridSize / 2; y <= gridSize / 2; y += spacing) {
-    points.push(new THREE.Vector3(-gridSize / 2, y, -60))
-    points.push(new THREE.Vector3(gridSize / 2, y, -60))
-  }
-
-  // Вертикальные линии
-  for (let x = -gridSize / 2; x <= gridSize / 2; x += spacing) {
-    points.push(new THREE.Vector3(x, -gridSize / 2, -60))
-    points.push(new THREE.Vector3(x, gridSize / 2, -60))
-  }
-
-  const geometry = new THREE.BufferGeometry().setFromPoints(points)
-  gridLines = new THREE.LineSegments(geometry, gridMaterial)
-  scene.add(gridLines)
 }
 
 /**
@@ -872,10 +834,6 @@ const animate = () => {
     neb.mesh.rotation.z += 0.00003
   })
 
-  // S6-T5: Grid линии становятся ярче на peaks
-  if (gridLines) {
-    gridLines.material.opacity = 0.06 + smoothedAudioBoost * 0.08
-  }
 
   // S7: Обновляем 3D спектр
   if (spectrumMesh && spectrumAnalyzer) {
@@ -1195,13 +1153,6 @@ onUnmounted(() => {
     sharedNebulaGeometry = null
   }
 
-  // Dispose grid lines
-  if (gridLines) {
-    scene.remove(gridLines)
-    gridLines.geometry.dispose()
-    gridLines.material.dispose()
-    gridLines = null
-  }
 
   // S7: Dispose spectrum mesh
   if (spectrumMesh) {

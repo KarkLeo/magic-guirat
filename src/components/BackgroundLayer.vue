@@ -68,7 +68,6 @@ function initThreeJS() {
   createStarParticles()
 
   // TODO (S6-T3): Add nebula spheres
-  // TODO (S6-T4): Add grid lines
 
   console.log('[BackgroundLayer] Three.js initialized:', { width, height })
 }
