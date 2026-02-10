@@ -65,16 +65,30 @@ body {
   top: 1.5rem;
   left: 1.5rem;
   z-index: 10;
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 800;
-  background: linear-gradient(135deg, #667eea 0%, #a855f7 50%, #f093fb 100%);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  background: linear-gradient(90deg, #ec4899 0%, #a855f7 40%, #667eea 70%, #f59e0b 100%);
+  background-size: 200% 100%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  filter: drop-shadow(0 0 20px rgba(102, 126, 234, 0.5));
-  letter-spacing: -0.02em;
+  filter: drop-shadow(0 0 20px rgba(236, 72, 153, 0.5))
+    brightness(calc(1 + var(--rms-level, 0) * 0.5));
   pointer-events: none;
   user-select: none;
+  animation: titlePulse 4s ease-in-out infinite, titleGradient 8s ease infinite;
+}
+
+@keyframes titlePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+@keyframes titleGradient {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
 }
 
 /* Settings button — top right overlay */
@@ -98,10 +112,19 @@ body {
   backdrop-filter: blur(10px);
 }
 
+.settings-btn svg {
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
 .settings-btn:hover {
   color: #e0d6f6;
   background: rgba(255, 255, 255, 0.12);
   border-color: rgba(168, 181, 255, 0.4);
+  filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.6));
+}
+
+.settings-btn:hover svg {
+  transform: rotate(90deg);
 }
 
 .settings-btn:focus-visible {
@@ -123,9 +146,10 @@ body {
 /* Responsive */
 @media (max-width: 768px) {
   .app-logo {
-    font-size: 1.3rem;
+    font-size: 1.1rem;
     top: 1rem;
     left: 1rem;
+    letter-spacing: 0.1em;
   }
 
   .settings-btn {

@@ -37,7 +37,7 @@
 </template>
 
 <script setup>
-import { computed, watch, onUnmounted } from 'vue'
+import { computed, watch, onUnmounted, watchEffect } from 'vue'
 import { useAudioCapture } from '@/composables/useAudioCapture'
 import { useFrequencyAnalyzer } from '@/composables/useFrequencyAnalyzer'
 import { useChromaAnalyzer } from '@/composables/useChromaAnalyzer'
@@ -159,6 +159,11 @@ const stringIntensities = computed(() => {
   }
 
   return intensities
+})
+
+// S8-T1: Экспорт RMS уровня через CSS custom property для audio-reactive UI
+watchEffect(() => {
+  document.documentElement.style.setProperty('--rms-level', String(audioLevel.value || 0))
 })
 
 // Переключение состояния захвата

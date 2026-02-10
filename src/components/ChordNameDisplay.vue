@@ -106,6 +106,12 @@ const confidencePercent = computed(() => {
   background-clip: text;
   line-height: 1;
   filter: drop-shadow(0 2px 8px rgba(192, 132, 252, 0.5));
+  animation: chordGlow 2s ease-in-out infinite;
+}
+
+@keyframes chordGlow {
+  0%, 100% { filter: drop-shadow(0 2px 8px rgba(192, 132, 252, 0.5)); }
+  50% { filter: drop-shadow(0 2px 16px rgba(192, 132, 252, 0.8)); }
 }
 
 .chord-suffix {
@@ -151,23 +157,29 @@ const confidencePercent = computed(() => {
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 
-/* Transition для смены аккорда */
+/* Transition для смены аккорда — bounce-in с glow */
 .chord-swap-enter-active {
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .chord-swap-leave-active {
-  transition: all 0.8s cubic-bezier(0.4, 0, 0.6, 1);
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.6, 1);
 }
 
 .chord-swap-enter-from {
   opacity: 0;
-  transform: scale(0.85) translateY(8px);
+  transform: scale(0.7) translateY(12px);
+  filter: drop-shadow(0 0 0 rgba(192, 132, 252, 0));
+}
+
+.chord-swap-enter-to {
+  filter: drop-shadow(0 0 30px rgba(192, 132, 252, 0.8));
 }
 
 .chord-swap-leave-to {
   opacity: 0;
-  transform: scale(0.95) translateY(-4px);
+  transform: scale(0.9) translateY(-6px);
+  filter: drop-shadow(0 0 0 rgba(192, 132, 252, 0));
 }
 
 /* Responsive */
