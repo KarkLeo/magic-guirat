@@ -102,9 +102,24 @@ export interface UseSettingsReturn {
   ghostBlur: Ref<number>
   smokeIntensity: Ref<number>
   turbulence: Ref<number>
+  qualityPreset: Ref<QualityPreset>
   availableDevices: Ref<MediaDeviceInfo[]>
   refreshDevices: () => Promise<void>
   resetToDefaults: () => void
 }
 
 export type DetectionMode = 'single' | 'chord'
+
+// ============================================================================
+// Quality Presets
+// ============================================================================
+
+export type QualityPreset = 'low' | 'medium' | 'high'
+
+export interface QualityConfig {
+  maxParticles: number
+  numStars: number
+  fboScale: number
+  pixelRatio: number
+  nebulaeEnabled: boolean
+}

@@ -12,6 +12,28 @@
         </div>
 
         <div class="settings-body">
+          <!-- Quality Preset -->
+          <div class="settings-section">
+            <label class="settings-label">Качество графики</label>
+            <div class="quality-presets">
+              <button
+                v-for="preset in qualityOptions"
+                :key="preset.value"
+                class="quality-btn"
+                :class="{ active: qualityPreset === preset.value }"
+                @click="qualityPreset = preset.value"
+              >
+                {{ preset.label }}
+              </button>
+            </div>
+            <div class="settings-range-labels">
+              <span>Для слабых ПК</span>
+              <span>Максимум эффектов</span>
+            </div>
+          </div>
+
+          <div class="settings-divider"></div>
+
           <!-- Микрофон -->
           <div class="settings-section">
             <label class="settings-label">Микрофон</label>
@@ -255,10 +277,17 @@ const {
   ghostBlur,
   smokeIntensity,
   turbulence,
+  qualityPreset,
   availableDevices,
   refreshDevices,
   resetToDefaults
 } = useSettings()
+
+const qualityOptions = [
+  { value: 'low', label: 'Низкое' },
+  { value: 'medium', label: 'Среднее' },
+  { value: 'high', label: 'Высокое' },
+]
 
 const formattedThreshold = computed(() => noiseThreshold.value.toFixed(3))
 const formattedBloom = computed(() => bloomIntensity.value.toFixed(1))
@@ -433,6 +462,35 @@ const handleReset = () => {
   background: linear-gradient(135deg, #667eea, #a855f7);
   cursor: pointer;
   box-shadow: 0 0 10px rgba(102, 126, 234, 0.4);
+}
+
+.quality-presets {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.quality-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(168, 181, 255, 0.15);
+  color: rgba(168, 181, 255, 0.7);
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.quality-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(168, 181, 255, 0.3);
+}
+
+.quality-btn.active {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.3), rgba(168, 85, 247, 0.3));
+  border-color: rgba(102, 126, 234, 0.5);
+  color: #e0d6f6;
+  box-shadow: 0 0 10px rgba(102, 126, 234, 0.2);
 }
 
 .settings-range-labels {

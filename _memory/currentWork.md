@@ -1,9 +1,9 @@
 # Текущая Работа - Visual Overhaul (Sprints 4-9)
 
 **Дата начала:** 2026-02-07
-**Текущий спринт:** Sprint 8 ✅ COMPLETE
+**Текущий спринт:** Sprint 9 ✅ COMPLETE
 **Текущая дата:** 2026-02-10
-**Статус:** Sprint 8 COMPLETE ✅ — UI Refresh & Extra Animations
+**Статус:** Sprint 9 COMPLETE ✅ — Performance Optimization
 
 ---
 
@@ -333,10 +333,43 @@
 
 ---
 
+## ⚡ Sprint 9: Performance Optimization ✅ COMPLETE
+
+### Статус: COMPLETE (2026-02-10)
+
+### Задачи
+
+| ID | Задача | Приоритет | Статус |
+|----|--------|-----------|--------|
+| S9-T1 | Pre-allocate spectrum buffers | P0 | ✅ DONE |
+| S9-T2 | Half-resolution Ghost Trail FBOs | P0 | ✅ DONE |
+| S9-T3 | Simplify FBM noise in trail shader | P1 | ✅ DONE |
+| S9-T4 | Share nebula geometry | P2 | ✅ DONE |
+| S9-T5 | Quality Presets — settings + UI | P0 | ✅ DONE |
+| S9-T6 | Apply quality settings in visualization | P0 | ✅ DONE |
+
+**Реализовано:**
+- **S9-T1:** Pre-allocated `spectrumSmoothBuffer` и `spectrumFinalBuffer` — 0 аллокаций/кадр в `updateSpectrumVertices()` (было ~120/сек). Модифицирована `smoothSpectrumLine()` для записи в переданный буфер.
+- **S9-T2:** `GhostTrailPass` принимает `resolutionScale` (default 0.5). FBO targets создаются с уменьшенным разрешением. При half-res на 1920x1080 — FBO 960x540 (4x меньше пикселей).
+- **S9-T3:** FBM упрощён с 4 до 2 итераций — ~50% меньше trig ops на пиксель. Визуально разница минимальна (дым и так размыт).
+- **S9-T4:** Одна `PlaneGeometry(1,1)` шарится между 3 туманностями вместо 3 отдельных.
+- **S9-T5:** Добавлен `qualityPreset` setting (low/medium/high) с UI кнопками в SettingsPanel. Persistence в localStorage.
+- **S9-T6:** Quality preset применяется при инициализации и при смене: particles (500/1000/2000), stars (200/500/800), pixelRatio (1.0/1.5/devicePixelRatio), FBO scale (0.5/0.5/0.75), nebulae visibility. Динамическое пересоздание подсистем при смене.
+
+**Файлы:**
+- `src/components/GuitarStringsVisualization.vue` — spectrum buffers, quality config, recreate functions
+- `src/utils/GhostTrailPass.js` — resolutionScale parameter
+- `src/shaders/trailAccumulation.glsl` — simplified FBM
+- `src/composables/useSettings.ts` — qualityPreset setting
+- `src/types/index.ts` — QualityPreset, QualityConfig types
+- `src/components/SettingsPanel.vue` — quality preset UI
+
+---
+
 ## 📝 Следующие Действия
 
-### После Sprint 8
-- **Sprint 9:** Performance Optimization
+### После Sprint 9
+- Все спринты Visual Overhaul завершены (4-9) ✅
 
 ---
 
@@ -390,9 +423,9 @@
 - Sprint 6: 100% ✅ (5/5 задач завершено)
 - Sprint 7: 100% ✅ (5/5 задач завершено)
 - Sprint 8: 100% ✅ (4/5 задач завершено, 1 skipped)
-- Sprint 9: 0%
+- Sprint 9: 100% ✅ (6/6 задач завершено)
 
-**Total:** 83% (5 спринтов завершено из 6)
+**Total:** 100% ✅ (6 спринтов завершено из 6)
 
 ---
 
@@ -424,7 +457,7 @@
 | Week 4 | Sprint 6 | Фоновые эффекты | ✅ DONE |
 | Week 5 | Sprint 7 | Новый спектр | ✅ DONE |
 | Week 6 | Sprint 8 | UI polish | ✅ DONE |
-| Week 7 | Sprint 9 | Оптимизация | ⬜ TODO |
+| Week 7 | Sprint 9 | Оптимизация | ✅ DONE |
 
 **Estimated completion:** 5-7 недель (S4 выполнен раньше плана)
 
@@ -497,5 +530,5 @@
 
 ---
 
-**Last Updated:** 2026-02-10 (Sprint 7 COMPLETE ✅)
-**Next Review:** После завершения Sprint 8 (UI Refresh)
+**Last Updated:** 2026-02-10 (Sprint 9 COMPLETE ✅ — All Visual Overhaul sprints done!)
+**Next Review:** Project complete — future enhancements as needed

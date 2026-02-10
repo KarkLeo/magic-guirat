@@ -5,7 +5,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import * as THREE from 'three'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
@@ -80,12 +80,13 @@ let compositeFullSceneWithGhostPass = null
 let starParticles = null
 let starGeometry = null
 let starMaterial = null
-const NUM_STARS = 800
+let NUM_STARS = 800
 const STAR_SPREAD = 60 // Радиус распределения
 let smoothedAudioBoost = 0 // Сглаженный audio boost для плавной пульсации
 
 // S6-T3: Nebula meshes
 const nebulae = [] // Массив {mesh, baseScale, breathSpeed, breathPhase}
+let sharedNebulaGeometry = null // Shared geometry для всех туманностей
 
 // S6-T4: Grid lines
 let gridLines = null
@@ -101,6 +102,9 @@ const SPECTRUM_HEIGHT = 6      // Верх растворяется в «неб�
 const SPECTRUM_X_MIN = -12
 const SPECTRUM_X_MAX = 12
 const smoothedSpectrum = new Float32Array(SPECTRUM_BINS) // Сглаженные данные
+// Pre-allocated буферы для updateSpectrumVertices (избегаем аллокаций каждый кадр)
+let spectrumSmoothBuffer = null  // Float32Array(SPECTRUM_BINS) — catmull-rom output
+let spectrumFinalBuffer = null   // Float32Array(SPECTRUM_BINS) — smoothSpectrumLine output
 
 // Система частиц
 let particleSystem = null
@@ -132,7 +136,7 @@ const STRING_RADIUS = 0.05
 const STRING_SPACING = 1.2
 
 // Параметры системы частиц
-const MAX_PARTICLES = 2000
+let MAX_PARTICLES = 2000
 const BURST_COUNT = 50
 const STREAM_RATE = 18
 const PARTICLE_LIFETIME_MIN = 1.0
@@ -140,12 +144,24 @@ const PARTICLE_LIFETIME_MAX = 2.2
 const PARTICLE_BASE_SIZE = 0.38
 
 // Настройки из useSettings
-const { bloomIntensity, bloomThreshold, bloomRadius, ghostOpacity, ghostFadeSpeed, ghostBlur, smokeIntensity, turbulence } = useSettings()
+const { bloomIntensity, bloomThreshold, bloomRadius, ghostOpacity, ghostFadeSpeed, ghostBlur, smokeIntensity, turbulence, qualityPreset } = useSettings()
+
+// Quality config: определяет параметры визуализации на основе preset
+const QUALITY_CONFIGS = {
+  low: { maxParticles: 500, numStars: 200, fboScale: 0.5, pixelRatio: 1.0, nebulaeEnabled: false },
+  medium: { maxParticles: 1000, numStars: 500, fboScale: 0.5, pixelRatio: 1.5, nebulaeEnabled: true },
+  high: { maxParticles: 2000, numStars: 800, fboScale: 0.75, pixelRatio: Math.min(window.devicePixelRatio, 2), nebulaeEnabled: true },
+}
+
+const qualityConfig = computed(() => QUALITY_CONFIGS[qualityPreset.value] || QUALITY_CONFIGS.high)
 
 /**
  * Создаёт FBO систему для Ghost Trails эффекта
  * Использует ping-pong технику с двумя render targets через кастомный Pass
  */
+// Масштаб разрешения для Ghost Trail FBO (из quality config)
+let currentFboScale = 0.5
+
 const createGhostTrailFBO = () => {
   const w = getViewportWidth()
   const h = getViewportHeight()
@@ -164,7 +180,7 @@ const createGhostTrailFBO = () => {
     camera,
     fullSceneRT,
   )
-  ghostTrailPass = new GhostTrailPass(w, h)
+  ghostTrailPass = new GhostTrailPass(w, h, currentFboScale)
   compositeFullSceneWithGhostPass = new CompositeFullSceneWithGhostPass(fullSceneRT)
 }
 
@@ -238,6 +254,12 @@ const initThreeJS = () => {
   const canvas = canvasRef.value
   if (!canvas) return
 
+  // Применяем quality config при инициализации
+  const qc = qualityConfig.value
+  MAX_PARTICLES = qc.maxParticles
+  NUM_STARS = qc.numStars
+  currentFboScale = qc.fboScale
+
   // Scene
   scene = new THREE.Scene()
   scene.background = new THREE.Color(0x0f0c29) // Темный фон
@@ -261,7 +283,7 @@ const initThreeJS = () => {
     alpha: false,
   })
   renderer.setSize(w, h)
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer.setPixelRatio(qc.pixelRatio)
 
   // Освещение
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.3)
@@ -310,6 +332,11 @@ const initThreeJS = () => {
 
   // Создаём систему частиц
   createParticleSystem()
+
+  // Применяем nebulae visibility из quality config
+  if (!qc.nebulaeEnabled) {
+    nebulae.forEach((neb) => { neb.mesh.visible = false })
+  }
 
   // Запускаем рендеринг
   lastFrameTime = performance.now()
@@ -382,8 +409,10 @@ const createNebulae = () => {
     { color: 0x8b5cf6, x: -5, y: -10, z: -70, scale: 25, opacity: 0.05, breathSpeed: 0.0002, breathPhase: 4.2 },
   ]
 
+  // Одна геометрия для всех туманностей
+  sharedNebulaGeometry = new THREE.PlaneGeometry(1, 1)
+
   nebulaConfigs.forEach((cfg) => {
-    const geometry = new THREE.PlaneGeometry(1, 1)
     const material = new THREE.ShaderMaterial({
       uniforms: {
         uColor: { value: new THREE.Color(cfg.color) },
@@ -398,15 +427,15 @@ const createNebulae = () => {
       side: THREE.DoubleSide,
     })
 
-    const mesh = new THREE.Mesh(geometry, material)
-    mesh.position.set(cfg.x, cfg.y, cfg.z)
-    mesh.scale.setScalar(cfg.scale)
+    const nebMesh = new THREE.Mesh(sharedNebulaGeometry, material)
+    nebMesh.position.set(cfg.x, cfg.y, cfg.z)
+    nebMesh.scale.setScalar(cfg.scale)
     // Случайный поворот для разнообразия
-    mesh.rotation.z = cfg.breathPhase
+    nebMesh.rotation.z = cfg.breathPhase
 
-    scene.add(mesh)
+    scene.add(nebMesh)
     nebulae.push({
-      mesh,
+      mesh: nebMesh,
       baseScale: cfg.scale,
       baseOpacity: cfg.opacity,
       breathSpeed: cfg.breathSpeed,
@@ -526,6 +555,10 @@ const createSpectrumMesh = () => {
   spectrumMesh = new THREE.Mesh(spectrumGeometry, spectrumMaterial)
   spectrumMesh.frustumCulled = false
   scene.add(spectrumMesh)
+
+  // Pre-allocate spectrum buffers
+  spectrumSmoothBuffer = new Float32Array(SPECTRUM_BINS)
+  spectrumFinalBuffer = new Float32Array(SPECTRUM_BINS)
 }
 
 /**
@@ -547,9 +580,8 @@ const catmullRomSmooth = (data, output) => {
 /**
  * S7: Мягкое сглаживание по 5 точкам (убирает зубчатость)
  */
-const smoothSpectrumLine = (data, radius = 2) => {
+const smoothSpectrumLine = (data, output, radius = 2) => {
   const n = data.length
-  const out = new Float32Array(n)
   for (let i = 0; i < n; i++) {
     let sum = 0
     let count = 0
@@ -558,9 +590,8 @@ const smoothSpectrumLine = (data, radius = 2) => {
       sum += data[k]
       count++
     }
-    out[i] = sum / count
+    output[i] = sum / count
   }
-  return out
 }
 
 /**
@@ -572,23 +603,22 @@ const updateSpectrumVertices = (spectrumData) => {
   const positions = spectrumGeometry.attributes.position.array
   const numCols = SPECTRUM_BINS
 
-  // Catmull-Rom сглаживание входных данных
-  const smoothedInput = new Float32Array(numCols)
-  catmullRomSmooth(spectrumData, smoothedInput)
+  // Catmull-Rom сглаживание входных данных (в pre-allocated буфер)
+  catmullRomSmooth(spectrumData, spectrumSmoothBuffer)
 
   // Lerp к текущим значениям (меньший коэффициент = плавнее реакция)
   for (let i = 0; i < numCols; i++) {
-    const normalized = smoothedInput[i] / 255 // 0..1
+    const normalized = spectrumSmoothBuffer[i] / 255 // 0..1
     smoothedSpectrum[i] += (normalized - smoothedSpectrum[i]) * 0.2
   }
 
-  // Дополнительное сглаживание линии (убирает грубость)
-  const finalSpectrum = smoothSpectrumLine(smoothedSpectrum, 2)
+  // Дополнительное сглаживание линии (в pre-allocated буфер)
+  smoothSpectrumLine(smoothedSpectrum, spectrumFinalBuffer, 2)
 
   // Обновляем верхний ряд вершин
   for (let i = 0; i < numCols; i++) {
     const topIdx = numCols + i
-    positions[topIdx * 3 + 1] = SPECTRUM_Y_BASE + finalSpectrum[i] * SPECTRUM_HEIGHT
+    positions[topIdx * 3 + 1] = SPECTRUM_Y_BASE + spectrumFinalBuffer[i] * SPECTRUM_HEIGHT
   }
 
   spectrumGeometry.attributes.position.needsUpdate = true
@@ -1026,6 +1056,111 @@ watch(turbulence, (newTurbulence) => {
   }
 })
 
+/**
+ * Пересоздаёт систему частиц с новым MAX_PARTICLES
+ */
+const recreateParticleSystem = () => {
+  if (particleSystem && scene) {
+    scene.remove(particleSystem)
+    particleGeometry.dispose()
+    particleMaterial.dispose()
+    particleSystem = null
+  }
+  pPositions = null
+  pColors = null
+  pAlphas = null
+  pSizes = null
+  pVelocities = null
+  pLifetimes = null
+  pMaxLifetimes = null
+  pAlive = null
+  nextParticleIndex = 0
+  streamAccumulators.fill(0)
+  if (scene) createParticleSystem()
+}
+
+/**
+ * Пересоздаёт звёзды с новым NUM_STARS
+ */
+const recreateStars = () => {
+  if (starParticles && scene) {
+    scene.remove(starParticles)
+    starGeometry.dispose()
+    starMaterial.dispose()
+    starParticles = null
+  }
+  if (scene) createStarParticles()
+}
+
+/**
+ * Пересоздаёт Ghost Trail FBO с новым scale
+ */
+const recreateGhostTrailFBO = () => {
+  if (!composer || !scene) return
+
+  // Удаляем старые passes из composer
+  const passes = composer.passes.slice()
+  composer.passes.length = 0
+
+  if (saveFullSceneAndRenderStringsPass) saveFullSceneAndRenderStringsPass.dispose()
+  if (ghostTrailPass) ghostTrailPass.dispose()
+  if (compositeFullSceneWithGhostPass) compositeFullSceneWithGhostPass.dispose()
+  if (fullSceneRT) fullSceneRT.dispose()
+
+  createGhostTrailFBO()
+
+  // Восстанавливаем passes в правильном порядке
+  passes.forEach((pass) => {
+    if (pass instanceof SaveFullSceneAndRenderStringsOnlyPass ||
+        pass instanceof GhostTrailPass ||
+        pass instanceof CompositeFullSceneWithGhostPass) return
+    if (pass instanceof RenderPass) {
+      composer.addPass(pass)
+      composer.addPass(saveFullSceneAndRenderStringsPass)
+      composer.addPass(ghostTrailPass)
+      composer.addPass(compositeFullSceneWithGhostPass)
+    } else {
+      composer.addPass(pass)
+    }
+  })
+}
+
+// Watch для смены quality preset — пересоздаём подсистемы
+watch(qualityPreset, (newPreset) => {
+  const qc = QUALITY_CONFIGS[newPreset] || QUALITY_CONFIGS.high
+
+  // Обновляем pixelRatio
+  if (renderer) {
+    renderer.setPixelRatio(qc.pixelRatio)
+  }
+
+  // Пересоздаём частицы при изменении maxParticles
+  if (qc.maxParticles !== MAX_PARTICLES) {
+    MAX_PARTICLES = qc.maxParticles
+    recreateParticleSystem()
+  }
+
+  // Пересоздаём звёзды при изменении numStars
+  if (qc.numStars !== NUM_STARS) {
+    NUM_STARS = qc.numStars
+    recreateStars()
+  }
+
+  // Пересоздаём FBO при изменении fboScale
+  if (qc.fboScale !== currentFboScale) {
+    currentFboScale = qc.fboScale
+    recreateGhostTrailFBO()
+  }
+
+  // Видимость туманностей
+  nebulae.forEach((neb) => {
+    neb.mesh.visible = qc.nebulaeEnabled
+  })
+
+  // Обновляем размеры
+  handleResize()
+})
+
 // Lifecycle hooks
 onMounted(() => {
   initThreeJS()
@@ -1052,10 +1187,13 @@ onUnmounted(() => {
   // Dispose nebulae
   nebulae.forEach((neb) => {
     scene.remove(neb.mesh)
-    neb.mesh.geometry.dispose()
     neb.mesh.material.dispose()
   })
   nebulae.length = 0
+  if (sharedNebulaGeometry) {
+    sharedNebulaGeometry.dispose()
+    sharedNebulaGeometry = null
+  }
 
   // Dispose grid lines
   if (gridLines) {
@@ -1082,6 +1220,8 @@ onUnmounted(() => {
     spectrumAnalyzer.stopAnalysis()
     spectrumAnalyzer = null
   }
+  spectrumSmoothBuffer = null
+  spectrumFinalBuffer = null
 
   // Dispose particle system
   if (particleSystem) {

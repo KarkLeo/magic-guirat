@@ -19,18 +19,10 @@ float noise(vec2 p) {
   return sin(p.x * 10.0) * sin(p.y * 10.0);
 }
 
-// Более сложная шумовая функция с несколькими октавами
+// Упрощённый FBM с 2 октавами (достаточно для дымного эффекта, -50% trig ops)
 float fbm(vec2 p) {
-  float value = 0.0;
-  float amplitude = 0.5;
-  float frequency = 1.0;
-
-  for (int i = 0; i < 4; i++) {
-    value += amplitude * noise(p * frequency);
-    amplitude *= 0.5;
-    frequency *= 2.0;
-  }
-
+  float value = 0.5 * noise(p);
+  value += 0.25 * noise(p * 2.0);
   return value;
 }
 

@@ -8,13 +8,14 @@ import * as THREE from 'three'
 import trailAccumulationShader from '@/shaders/trailAccumulation.glsl?raw'
 
 export class GhostTrailPass extends Pass {
-  constructor(width, height) {
+  constructor(width, height, resolutionScale = 0.5) {
     super()
 
     // Важно: указываем, что pass должен swap buffers
     this.needsSwap = true
+    this.resolutionScale = resolutionScale
 
-    // Создаём два render targets для ping-pong
+    // Создаём два render targets для ping-pong (уменьшенное разрешение)
     const rtOptions = {
       minFilter: THREE.LinearFilter,
       magFilter: THREE.LinearFilter,
@@ -23,8 +24,10 @@ export class GhostTrailPass extends Pass {
       stencilBuffer: false,
     }
 
-    this.renderTargetA = new THREE.WebGLRenderTarget(width, height, rtOptions)
-    this.renderTargetB = new THREE.WebGLRenderTarget(width, height, rtOptions)
+    const scaledW = Math.max(1, Math.floor(width * resolutionScale))
+    const scaledH = Math.max(1, Math.floor(height * resolutionScale))
+    this.renderTargetA = new THREE.WebGLRenderTarget(scaledW, scaledH, rtOptions)
+    this.renderTargetB = new THREE.WebGLRenderTarget(scaledW, scaledH, rtOptions)
 
     // Начальная настройка: A = write, B = read
     this.currentWriteTarget = this.renderTargetA
@@ -38,7 +41,7 @@ export class GhostTrailPass extends Pass {
         uFadeSpeed: { value: 0.05 },   // Скорость затухания (0.05 = плавное затухание 2-3 сек)
         uOpacity: { value: 0.7 },      // Прозрачность ghost trails
         uDriftOffset: { value: new THREE.Vector2(0, 0) }, // Базовое смещение (без дрейфа)
-        uResolution: { value: new THREE.Vector2(width, height) }, // Разрешение для box blur
+        uResolution: { value: new THREE.Vector2(scaledW, scaledH) }, // Разрешение для box blur
         uBlurAmount: { value: 1.5 },   // Интенсивность размытия
         uTime: { value: 0.0 },         // Время для анимации волн
         uSmokeIntensity: { value: 1.0 }, // Интенсивность волн дыма
@@ -131,10 +134,12 @@ export class GhostTrailPass extends Pass {
    * Изменение размера render targets
    */
   setSize(width, height) {
-    this.renderTargetA.setSize(width, height)
-    this.renderTargetB.setSize(width, height)
+    const scaledW = Math.max(1, Math.floor(width * this.resolutionScale))
+    const scaledH = Math.max(1, Math.floor(height * this.resolutionScale))
+    this.renderTargetA.setSize(scaledW, scaledH)
+    this.renderTargetB.setSize(scaledW, scaledH)
     // Обновляем uniform разрешения для box blur
-    this.material.uniforms.uResolution.value.set(width, height)
+    this.material.uniforms.uResolution.value.set(scaledW, scaledH)
   }
 
   /**

@@ -1,5 +1,5 @@
 import { ref, watch } from 'vue'
-import type { UseSettingsReturn } from '@/types'
+import type { UseSettingsReturn, QualityPreset } from '@/types'
 
 const STORAGE_KEY = 'magic-guitar-settings'
 
@@ -14,6 +14,7 @@ interface SettingsData {
   ghostBlur: number
   smokeIntensity: number
   turbulence: number
+  qualityPreset: QualityPreset
 }
 
 const DEFAULTS: SettingsData = {
@@ -27,6 +28,7 @@ const DEFAULTS: SettingsData = {
   ghostBlur: 0.6,        // Мягкое размытие, форма следа сохраняется
   smokeIntensity: 1.0,   // Интенсивность волн дыма
   turbulence: 0.5,       // Турбулентность дыма
+  qualityPreset: 'high' as QualityPreset,  // Качество графики
 }
 
 // Module-level shared state (singleton)
@@ -40,6 +42,7 @@ const ghostFadeSpeed = ref<number>(DEFAULTS.ghostFadeSpeed)
 const ghostBlur = ref<number>(DEFAULTS.ghostBlur)
 const smokeIntensity = ref<number>(DEFAULTS.smokeIntensity)
 const turbulence = ref<number>(DEFAULTS.turbulence)
+const qualityPreset = ref<QualityPreset>(DEFAULTS.qualityPreset)
 const availableDevices = ref<MediaDeviceInfo[]>([])
 
 // Load from localStorage
@@ -58,6 +61,7 @@ function loadFromStorage(): void {
       if (parsed.ghostBlur !== undefined) ghostBlur.value = parsed.ghostBlur
       if (parsed.smokeIntensity !== undefined) smokeIntensity.value = parsed.smokeIntensity
       if (parsed.turbulence !== undefined) turbulence.value = parsed.turbulence
+      if (parsed.qualityPreset !== undefined) qualityPreset.value = parsed.qualityPreset
     }
   } catch (e) {
     // ignored — используем дефолты
@@ -79,7 +83,8 @@ function persist(): void {
         ghostFadeSpeed: ghostFadeSpeed.value,
         ghostBlur: ghostBlur.value,
         smokeIntensity: smokeIntensity.value,
-        turbulence: turbulence.value
+        turbulence: turbulence.value,
+        qualityPreset: qualityPreset.value
       })
     )
   } catch (e) {
@@ -99,6 +104,7 @@ watch(ghostFadeSpeed, persist)
 watch(ghostBlur, persist)
 watch(smokeIntensity, persist)
 watch(turbulence, persist)
+watch(qualityPreset, persist)
 
 export function useSettings(): UseSettingsReturn {
   const refreshDevices = async (): Promise<void> => {
@@ -122,6 +128,7 @@ export function useSettings(): UseSettingsReturn {
     ghostBlur.value = DEFAULTS.ghostBlur
     smokeIntensity.value = DEFAULTS.smokeIntensity
     turbulence.value = DEFAULTS.turbulence
+    qualityPreset.value = DEFAULTS.qualityPreset
   }
 
   return {
@@ -135,6 +142,7 @@ export function useSettings(): UseSettingsReturn {
     ghostBlur,
     smokeIntensity,
     turbulence,
+    qualityPreset,
     availableDevices,
     refreshDevices,
     resetToDefaults
