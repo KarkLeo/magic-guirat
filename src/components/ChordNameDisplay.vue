@@ -31,6 +31,7 @@
         </div>
       </div>
     </transition>
+
   </div>
 </template>
 
@@ -200,5 +201,6 @@ const confidencePercent = computed(() => {
   .note-octave {
     font-size: 1.2rem;
   }
+
 }
 </style>

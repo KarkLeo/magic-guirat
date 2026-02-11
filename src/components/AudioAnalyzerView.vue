@@ -24,7 +24,7 @@
     <!-- Отображение аккорда / ноты -->
     <transition name="fade">
       <ChordNameDisplay
-        v-if="isCapturing && (isChordDetected || detectedNote.note)"
+        v-if="isCapturing && showChordDisplay"
         :chord="currentChord"
         :candidates="chordCandidates"
         :detected-note="detectedNote"
@@ -33,16 +33,25 @@
       />
     </transition>
 
+    <!-- История аккордов — всегда видна пока идёт захват -->
+    <div v-if="isCapturing && chordHistory.length > 1" class="chord-history">
+      <span v-for="(item, i) in chordHistory.slice(1)" :key="item.timestamp" class="history-item">
+        <span v-if="i > 0" class="history-separator">&middot;</span>
+        <span class="history-name">{{ item.displayName }}</span>
+      </span>
+    </div>
+
   </div>
 </template>
 
 <script setup>
-import { computed, watch, onUnmounted, watchEffect } from 'vue'
+import { ref, computed, watch, onUnmounted, watchEffect } from 'vue'
 import { useAudioCapture } from '@/composables/useAudioCapture'
 import { useFrequencyAnalyzer } from '@/composables/useFrequencyAnalyzer'
 import { useChromaAnalyzer } from '@/composables/useChromaAnalyzer'
 import { useChordRecognition } from '@/composables/useChordRecognition'
 import { useSettings } from '@/composables/useSettings'
+import { useChordHistory } from '@/composables/useChordHistory'
 import { getActiveString, GUITAR_STRINGS } from '@/utils/guitarMapping'
 import { noteNameToPitchClass } from '@/utils/noteUtils'
 import AudioCaptureButton from './AudioCaptureButton.vue'
@@ -161,6 +170,31 @@ const stringIntensities = computed(() => {
   return intensities
 })
 
+// История аккордов/нот
+const { chordHistory } = useChordHistory(
+  currentChord,
+  detectedNote,
+  detectionMode,
+  isChordDetected,
+  pitchConfidence,
+)
+
+// Задержка скрытия дисплея аккордов (3 секунды после последнего детекта)
+const hasActiveDetection = computed(() => isChordDetected.value || !!detectedNote.value.note)
+const showChordDisplay = ref(false)
+let hideTimeout = null
+
+watch(hasActiveDetection, (active) => {
+  if (active) {
+    clearTimeout(hideTimeout)
+    showChordDisplay.value = true
+  } else {
+    hideTimeout = setTimeout(() => {
+      showChordDisplay.value = false
+    }, 3000)
+  }
+})
+
 // S8-T1: Экспорт RMS уровня через CSS custom property для audio-reactive UI
 watchEffect(() => {
   document.documentElement.style.setProperty('--rms-level', String(audioLevel.value || 0))
@@ -205,6 +239,7 @@ watch(
 
 // Очистка при размонтировании компонента
 onUnmounted(() => {
+  clearTimeout(hideTimeout)
   if (isCapturing.value) {
     stopCapture()
   }
@@ -229,11 +264,60 @@ onUnmounted(() => {
 }
 
 .fade-leave-active {
-  transition: opacity 0.8s ease;
+  transition: opacity 2s ease;
 }
 
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* История аккордов — фиксированная позиция */
+.chord-history {
+  position: fixed;
+  top: 9rem;
+  left: 1.5rem;
+  z-index: 10;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  max-width: calc(100vw - 200px);
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, white 60%, transparent 100%);
+  mask-image: linear-gradient(to right, white 60%, transparent 100%);
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.history-separator {
+  color: rgba(192, 132, 252, 0.25);
+  font-size: 0.9rem;
+  margin: 0 0.4rem;
+}
+
+.history-name {
+  font-size: 1.1rem;
+  font-weight: 500;
+  background: linear-gradient(135deg, rgba(192, 132, 252, 0.6), rgba(240, 147, 251, 0.4));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .chord-history {
+    top: 7.5rem;
+    left: 1rem;
+    max-width: calc(100vw - 120px);
+  }
+
+  .history-name {
+    font-size: 0.9rem;
+  }
 }
 </style>

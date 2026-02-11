@@ -133,6 +133,12 @@ const initThreeJS = () => {
 
   // Ghost Trail FBO
   ghostTrailData = createGhostTrailFBO(scene, camera, w, h, currentFboScale)
+  // Применяем сохранённые настройки (конструктор использует дефолты)
+  ghostTrailData.ghostTrailPass.setOpacity(ghostOpacity.value)
+  ghostTrailData.ghostTrailPass.setFadeSpeed(ghostFadeSpeed.value)
+  ghostTrailData.ghostTrailPass.setBlurAmount(ghostBlur.value)
+  ghostTrailData.ghostTrailPass.setSmokeIntensity(smokeIntensity.value)
+  ghostTrailData.ghostTrailPass.setTurbulence(turbulence.value)
   composer.addPass(ghostTrailData.savePass)
   composer.addPass(ghostTrailData.ghostTrailPass)
   composer.addPass(ghostTrailData.compositePass)
@@ -308,6 +314,14 @@ watch(qualityPreset, (newPreset) => {
     )
     // oldData passes already disposed inside recreateGhostTrailFBO
     if (!ghostTrailData) ghostTrailData = oldData
+    // Применяем сохранённые настройки к новому pass
+    if (ghostTrailData?.ghostTrailPass) {
+      ghostTrailData.ghostTrailPass.setOpacity(ghostOpacity.value)
+      ghostTrailData.ghostTrailPass.setFadeSpeed(ghostFadeSpeed.value)
+      ghostTrailData.ghostTrailPass.setBlurAmount(ghostBlur.value)
+      ghostTrailData.ghostTrailPass.setSmokeIntensity(smokeIntensity.value)
+      ghostTrailData.ghostTrailPass.setTurbulence(turbulence.value)
+    }
   }
 
   if (nebulaeData) {
