@@ -1,6 +1,6 @@
 <template>
-  <div class="guitar-visualization" role="region" aria-label="Визуализация струн гитары">
-    <canvas ref="canvasRef" class="visualization-canvas" role="img" aria-label="3D визуализация шести струн гитары с анимацией свечения"></canvas>
+  <div class="guitar-visualization" role="region" aria-label="Guitar strings visualization">
+    <canvas ref="canvasRef" class="visualization-canvas" role="img" aria-label="3D visualization of six guitar strings with glow animation"></canvas>
   </div>
 </template>
 
@@ -14,7 +14,7 @@ import { useSettings } from '@/composables/useSettings'
 import { useFrequencyAnalyzer } from '@/composables/useFrequencyAnalyzer'
 
 // Scene modules
-import { createStarParticles, updateStars, disposeStars, recreateStars } from '@/scene/stars'
+import { createStarParticles, updateStars, disposeStars, recreateStars, createShootingStars, updateShootingStars, disposeShootingStars } from '@/scene/stars'
 import { createNebulae, updateNebulae, disposeNebulae } from '@/scene/nebulae'
 import { createSpectrumMesh, updateSpectrum, disposeSpectrum, SPECTRUM_BINS } from '@/scene/spectrum'
 import { createParticleSystem, emitBurst, emitStream, updateParticles, disposeParticles, recreateParticles } from '@/scene/particles'
@@ -60,6 +60,7 @@ let animationFrameId = null
 
 // Subsystem data
 let starsData = null
+let shootingStarsData = null
 let nebulaeData = null
 let spectrumData = null
 let particleData = null
@@ -90,7 +91,7 @@ const QUALITY_CONFIGS = {
 const qualityConfig = computed(() => QUALITY_CONFIGS[qualityPreset.value] || QUALITY_CONFIGS.high)
 
 /**
- * Инициализация Three.js сцены
+ * Initializes Three.js scene
  */
 const initThreeJS = () => {
   const canvas = canvasRef.value
@@ -133,7 +134,7 @@ const initThreeJS = () => {
 
   // Ghost Trail FBO
   ghostTrailData = createGhostTrailFBO(scene, camera, w, h, currentFboScale)
-  // Применяем сохранённые настройки (конструктор использует дефолты)
+  // Apply saved settings (constructor uses defaults)
   ghostTrailData.ghostTrailPass.setOpacity(ghostOpacity.value)
   ghostTrailData.ghostTrailPass.setFadeSpeed(ghostFadeSpeed.value)
   ghostTrailData.ghostTrailPass.setBlurAmount(ghostBlur.value)
@@ -154,6 +155,7 @@ const initThreeJS = () => {
 
   // Create subsystems
   starsData = createStarParticles(scene, currentNumStars)
+  shootingStarsData = createShootingStars(scene)
   nebulaeData = createNebulae(scene)
   strings.push(...createStrings(scene))
   spectrumData = createSpectrumMesh(scene)
@@ -170,7 +172,7 @@ const initThreeJS = () => {
 }
 
 /**
- * Анимация сцены
+ * Scene animation
  */
 const animate = () => {
   if (!renderer || !scene || !camera) return
@@ -200,11 +202,14 @@ const animate = () => {
   // Audio reactivity
   const rms = props.rmsLevel || 0
   const audioBoost = Math.min(rms * 3, 1.0)
-  const lerpFactor = audioBoost > smoothedAudioBoost ? 0.15 : 0.03
+  const lerpFactor = audioBoost > smoothedAudioBoost ? 0.18 : 0.04
   smoothedAudioBoost += (audioBoost - smoothedAudioBoost) * lerpFactor
 
   // Stars
   updateStars(starsData, now, smoothedAudioBoost)
+
+  // Shooting stars
+  updateShootingStars(shootingStarsData, dt, smoothedAudioBoost)
 
   // Nebulae
   updateNebulae(nebulaeData, now, smoothedAudioBoost)
@@ -226,7 +231,7 @@ const animate = () => {
 }
 
 /**
- * Обновляет свечение и колебания струн
+ * Updates string glow and oscillations
  */
 const onStringsUpdate = () => {
   prevActiveSet = updateStringActivation(strings, props, prevActiveSet, (arrayIndex, intensity) => {
@@ -235,7 +240,7 @@ const onStringsUpdate = () => {
 }
 
 /**
- * Обработка изменения размера окна
+ * Handles window resize
  */
 const handleResize = () => {
   if (!camera || !renderer) return
@@ -314,7 +319,7 @@ watch(qualityPreset, (newPreset) => {
     )
     // oldData passes already disposed inside recreateGhostTrailFBO
     if (!ghostTrailData) ghostTrailData = oldData
-    // Применяем сохранённые настройки к новому pass
+    // Apply saved settings to new pass
     if (ghostTrailData?.ghostTrailPass) {
       ghostTrailData.ghostTrailPass.setOpacity(ghostOpacity.value)
       ghostTrailData.ghostTrailPass.setFadeSpeed(ghostFadeSpeed.value)
@@ -344,6 +349,7 @@ onUnmounted(() => {
 
   // Dispose subsystems
   disposeStars(scene, starsData)
+  disposeShootingStars(scene, shootingStarsData)
   disposeNebulae(scene, nebulaeData)
   disposeSpectrum(scene, spectrumData)
   disposeParticles(scene, particleData)

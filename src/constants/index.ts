@@ -1,11 +1,11 @@
 /**
  * Constants barrel export
- * Централизованный экспорт всех констант приложения
+ * Centralized export of all application constants
  */
 
 export * from './colors'
 
-// Здесь будут другие константы в будущем:
+// Other constants will be added here in the future:
 // export * from './physics'
 // export * from './audio'
 // export * from './animation'

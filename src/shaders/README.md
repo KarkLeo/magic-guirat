@@ -1,79 +1,79 @@
 # GLSL Shaders Documentation
 
-Эта директория содержит GLSL шейдеры для визуализации струн и эффектов.
+This directory contains GLSL shaders for string visualization and effects.
 
-## Файлы
+## Files
 
 ### stringVertex.glsl
-**Назначение:** Vertex shader для волнообразной деформации геометрии струн
+**Purpose:** Vertex shader for wave deformation of string geometry
 
 **Uniforms:**
-- `uTime` (float) - Текущее время анимации в миллисекундах
-- `uAmplitude` (float) - Амплитуда колебаний струны (0.0 - 1.0)
-  - Зависит от интенсивности звука
-  - 0.0 = нет колебаний, 1.0 = максимальные колебания
-- `uFrequency` (float) - Частота волны (обычно 0.5 - 3.0)
-  - Может быть связана с высотой ноты
-  - Большие значения = более быстрые колебания
-- `uDamping` (float) - Коэффициент затухания (1.0 - 2.0)
-  - Определяет, как быстро затухают колебания
-  - Меньше значение = медленнее затухание
-- `uAttackTime` (float) - Время начала колебания в миллисекундах
-  - Используется для вычисления затухания
-  - Обновляется при каждом новом ударе по струне
+- `uTime` (float) - Current animation time in milliseconds
+- `uAmplitude` (float) - Wave oscillation amplitude (0.0 - 1.0)
+  - Depends on sound intensity
+  - 0.0 = no oscillation, 1.0 = maximum oscillation
+- `uFrequency` (float) - Wave frequency (usually 0.5 - 3.0)
+  - Can be linked to note pitch
+  - Larger values = faster oscillations
+- `uDamping` (float) - Damping coefficient (1.0 - 2.0)
+  - Determines how quickly oscillations decay
+  - Smaller value = slower decay
+- `uAttackTime` (float) - Oscillation start time in milliseconds
+  - Used to calculate decay
+  - Updates with each new string strike
 
 **Varyings:**
-- `vUv` (vec2) - UV координаты для fragment shader
-- `vIntensity` (float) - Интенсивность затухания (1.0 → 0.0 со временем)
+- `vUv` (vec2) - UV coordinates for fragment shader
+- `vIntensity` (float) - Decay intensity (1.0 → 0.0 over time)
 
-**Алгоритм:**
-1. Волна создаётся функцией `sin(position.x * frequency + time)`
-2. Затухание вычисляется как `exp(-damping * timeSinceAttack)`
-3. Вертикальное смещение = `amplitude * wave * decay`
+**Algorithm:**
+1. Wave created by `sin(position.x * frequency + time)`
+2. Decay computed as `exp(-damping * timeSinceAttack)`
+3. Vertical displacement = `amplitude * wave * decay`
 
 ---
 
 ### stringFragment.glsl
-**Назначение:** Enhanced fragment shader для градиентного цвета с продвинутыми эффектами свечения
+**Purpose:** Enhanced fragment shader for gradient color with advanced glow effects
 
 **Uniforms:**
-- `uColorStart` (vec3) - RGB начального цвета градиента (левый край струны)
-- `uColorEnd` (vec3) - RGB конечного цвета градиента (правый край струны)
-- `uGlowIntensity` (float) - Интенсивность свечения (0.0 - 3.0)
-  - Зависит от активности струны
-  - Усиливается bloom pass'ом
-- `uTime` (float) - Текущее время для shimmer эффекта (миллисекунды)
-- `uEdgeGlow` (float) - Интенсивность fresnel edge enhancement (0.0 - 1.0)
-  - Рекомендуемое значение: 0.3
-  - Имитирует отражение света на цилиндрической поверхности
+- `uColorStart` (vec3) - RGB gradient start color (left edge)
+- `uColorEnd` (vec3) - RGB gradient end color (right edge)
+- `uGlowIntensity` (float) - Glow intensity (0.0 - 3.0)
+  - Depends on string activity
+  - Boosted by bloom pass
+- `uTime` (float) - Current time for shimmer effect (milliseconds)
+- `uEdgeGlow` (float) - Fresnel edge enhancement intensity (0.0 - 1.0)
+  - Recommended value: 0.3
+  - Imitates light reflection on cylindrical surface
 
-**Varyings (от vertex shader):**
-- `vUv` (vec2) - UV координаты
-- `vIntensity` (float) - Интенсивность затухания
+**Varyings (from vertex shader):**
+- `vUv` (vec2) - UV coordinates
+- `vIntensity` (float) - Decay intensity
 
-**Алгоритм:**
-1. **Horizontal Gradient**: `mix(colorStart, colorEnd, uv.x)` - базовый градиент по длине
-2. **Radial Glow**: Свечение сильнее в центре струны (ось Y), слабее на краях
+**Algorithm:**
+1. **Horizontal Gradient**: `mix(colorStart, colorEnd, uv.x)` - basic gradient along length
+2. **Radial Glow**: Stronger in string center (Y axis), weaker at edges
    - `distFromCenter = abs(uv.y - 0.5) * 2.0`
    - `radialGlow = smoothstep(0.0, 1.0, 1.0 - distFromCenter)`
-3. **Fresnel Effect**: Edge enhancement для реалистичного отражения света
+3. **Fresnel Effect**: Edge enhancement for realistic light reflection
    - `fresnel = pow(distFromCenter, 2.0) * uEdgeGlow * vIntensity`
-4. **Shimmer Effect**: Subtle мерцание для активных струн
+4. **Shimmer Effect**: Subtle shimmer for active strings
    - `shimmer = sin(uTime * 0.003 + uv.x * 10.0) * 0.1 + 0.9`
-   - Применяется только к активным струнам через `mix(1.0, shimmer, vIntensity)`
-5. **Total Glow**: Комбинация всех эффектов
+   - Applied only to active strings via `mix(1.0, shimmer, vIntensity)`
+5. **Total Glow**: Combination of all effects
    - `totalGlow = uGlowIntensity * vIntensity * radialGlow * shimmer`
 6. **Final Color**: `baseColor * (1.0 + totalGlow + fresnel)`
 
 **Visual Effects:**
-- 🌟 Центр струны светится ярче краёв (radial glow)
-- ✨ Edges светятся за счёт fresnel эффекта
-- 💫 Subtle shimmer на активных струнах
-- 🎨 Smooth gradient по длине струны
+- String center glows brighter than edges (radial glow)
+- Edges glow via fresnel effect
+- Subtle shimmer on active strings
+- Smooth gradient along string length
 
 ---
 
-## Использование в Three.js
+## Usage in Three.js
 
 ```javascript
 import vertexShader from './shaders/stringVertex.glsl?raw'
@@ -94,31 +94,31 @@ const material = new THREE.ShaderMaterial({
   fragmentShader,
 })
 
-// В animation loop
+// In animation loop
 material.uniforms.uTime.value = performance.now()
 ```
 
 ---
 
-## Настройка параметров
+## Parameter Tuning
 
-### Для медленного затухания (sustain)
+### For slow decay (sustain)
 ```javascript
-uDamping: 0.8  // меньше = медленнее затухание
+uDamping: 0.8  // smaller = slower decay
 uAmplitude: 0.7
 ```
 
-### Для быстрого затухания (staccato)
+### For fast decay (staccato)
 ```javascript
-uDamping: 2.0  // больше = быстрее затухание
+uDamping: 2.0  // larger = faster decay
 uAmplitude: 0.4
 ```
 
-### Для связи с pitch detection
+### For linking to pitch detection
 ```javascript
-// Частота волны пропорциональна высоте ноты
+// Wave frequency proportional to note pitch
 const noteFreq = detectedFrequency // Hz
-const normalizedFreq = (noteFreq - 80) / (400 - 80) // нормализация
+const normalizedFreq = (noteFreq - 80) / (400 - 80) // normalize
 uFrequency: 0.5 + normalizedFreq * 2.5 // 0.5 - 3.0
 ```
 
@@ -126,36 +126,36 @@ uFrequency: 0.5 + normalizedFreq * 2.5 // 0.5 - 3.0
 
 ## Performance Notes
 
-- Vertex shader выполняется для каждой вершины геометрии
-- Fragment shader выполняется для каждого пикселя
-- Для оптимизации: используйте низкополигональную геометрию струн (16 сегментов достаточно)
-- `exp()` функция относительно дорогая, но затухание вычисляется только один раз на вершину
+- Vertex shader executes for each geometry vertex
+- Fragment shader executes for each pixel
+- For optimization: use low-polygon string geometry (16 segments sufficient)
+- `exp()` function is relatively expensive, but decay computed only once per vertex
 
 ---
 
 ## Troubleshooting
 
-**Проблема:** Струны не колеблются
-- Проверьте, что `uTime` обновляется в каждом кадре
-- Убедитесь, что `uAmplitude > 0`
-- Проверьте, что `uAttackTime` обновляется при активации струны
+**Problem:** Strings don't oscillate
+- Check that `uTime` updates each frame
+- Ensure `uAmplitude > 0`
+- Verify `uAttackTime` updates on string activation
 
-**Проблема:** Слишком быстрое/медленное затухание
-- Отрегулируйте `uDamping` (1.0 - 2.0 оптимальный диапазон)
+**Problem:** Too fast/slow decay
+- Adjust `uDamping` (1.0 - 2.0 is optimal range)
 
-**Проблема:** Нет bloom эффекта
-- Увеличьте `uGlowIntensity` (> 1.5)
-- Проверьте настройки UnrealBloomPass (threshold должен быть < 0.3)
+**Problem:** No bloom effect
+- Increase `uGlowIntensity` (> 1.5)
+- Check UnrealBloomPass settings (threshold should be < 0.3)
 
 ---
 
 ## Roadmap
 
-### Sprint 5 (планируется)
-- Гармоники: добавить несколько волн разной частоты
-- Улучшенная физика: учёт жёсткости струны
-- Вариация amplitude по длине струны
+### Sprint 5 (planned)
+- Harmonics: add multiple waves at different frequencies
+- Enhanced physics: account for string stiffness
+- Amplitude variation along string length
 
-### Sprint 6 (планируется)
-- Shader для частиц (particle vertex/fragment)
-- Shader для ghost trails эффекта
+### Sprint 6 (planned)
+- Particle vertex/fragment shaders
+- Ghost trails effect shader

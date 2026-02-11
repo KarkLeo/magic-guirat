@@ -7,7 +7,7 @@
       error: hasError,
     }"
     :disabled="isRequestingPermission"
-    :aria-label="isCapturing ? 'Остановить захват' : 'Начать захват звука'"
+    :aria-label="isCapturing ? 'Stop capturing' : 'Start audio capture'"
     :aria-pressed="isCapturing"
     @click="$emit('toggle-capture')"
   >

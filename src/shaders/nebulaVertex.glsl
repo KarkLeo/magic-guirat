@@ -1,5 +1,5 @@
 // Nebula Vertex Shader
-// Простой passthrough с UV координатами
+// Simple passthrough with UV coordinates
 
 varying vec2 vUv;
 

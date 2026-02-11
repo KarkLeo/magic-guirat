@@ -9,9 +9,9 @@ const STRING_RADIUS = 0.05
 const STRING_SPACING = 1.2
 
 /**
- * Создаёт 6 струн гитары с кастомными шейдерами
+ * Creates 6 guitar strings with custom shaders
  * @param {THREE.Scene} scene
- * @returns {THREE.Mesh[]} массив mesh'ей струн
+ * @returns {THREE.Mesh[]} array of string meshes
  */
 export const createStrings = (scene) => {
   const geometry = new THREE.CylinderGeometry(
@@ -71,12 +71,12 @@ export const createStrings = (scene) => {
 }
 
 /**
- * Обновляет свечение и колебания струн на основе props
+ * Updates string glow and oscillations based on props
  * @param {THREE.Mesh[]} strings
  * @param {{ activeStringIndices, stringIntensities, isActive }} props
  * @param {Set} prevActiveSet
- * @param {function} onBurst - callback(arrayIndex, intensity) при новой активации
- * @returns {Set} новый prevActiveSet
+ * @param {function} onBurst - callback(arrayIndex, intensity) on new activation
+ * @returns {Set} new prevActiveSet
  */
 export const updateStringActivation = (strings, props, prevActiveSet, onBurst) => {
   if (!strings.length) return prevActiveSet
@@ -113,7 +113,7 @@ export const updateStringActivation = (strings, props, prevActiveSet, onBurst) =
 }
 
 /**
- * Обновляет шейдеры струн каждый кадр (анимация uniforms)
+ * Updates string shaders each frame (uniform animation)
  */
 export const updateStringUniforms = (strings, time) => {
   strings.forEach((string) => {
@@ -133,7 +133,7 @@ export const updateStringUniforms = (strings, time) => {
 }
 
 /**
- * Удаляет струны из сцены и освобождает ресурсы
+ * Removes strings from scene and frees resources
  */
 export const disposeStrings = (scene, strings) => {
   strings.forEach((string) => {

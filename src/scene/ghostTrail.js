@@ -7,12 +7,12 @@ import {
 } from '@/utils/ComposerHelperPasses'
 
 /**
- * Создаёт FBO систему для Ghost Trails эффекта
+ * Creates FBO system for Ghost Trails effect
  * @param {THREE.Scene} scene
  * @param {THREE.Camera} camera
- * @param {number} w - ширина
- * @param {number} h - высота
- * @param {number} fboScale - масштаб разрешения FBO
+ * @param {number} w - width
+ * @param {number} h - height
+ * @param {number} fboScale - FBO resolution scale
  * @returns {{ ghostTrailPass, fullSceneRT, savePass, compositePass }}
  */
 export const createGhostTrailFBO = (scene, camera, w, h, fboScale) => {
@@ -33,7 +33,7 @@ export const createGhostTrailFBO = (scene, camera, w, h, fboScale) => {
 }
 
 /**
- * Удаляет ghost trail ресурсы
+ * Disposes ghost trail resources
  */
 export const disposeGhostTrail = (data) => {
   if (!data) return
@@ -44,7 +44,7 @@ export const disposeGhostTrail = (data) => {
 }
 
 /**
- * Пересоздаёт Ghost Trail FBO с новым scale, переставляя passes в composer
+ * Recreates Ghost Trail FBO with new scale, repositioning passes in composer
  * @param {EffectComposer} composer
  * @param {THREE.Scene} scene
  * @param {THREE.Camera} camera
@@ -70,7 +70,7 @@ export const recreateGhostTrailFBO = (composer, scene, camera, fboScale, getSize
   const { width, height } = getSize()
   const newData = createGhostTrailFBO(scene, camera, width, height, fboScale)
 
-  // Восстанавливаем passes в правильном порядке
+  // Restore passes in correct order
   passes.forEach((pass) => {
     if (pass instanceof SaveFullSceneAndRenderStringsOnlyPass ||
         pass instanceof GhostTrailPass ||

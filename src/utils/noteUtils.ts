@@ -1,5 +1,5 @@
 /**
- * Утилиты для работы с нотами и pitch classes
+ * Utilities for working with notes and pitch classes
  */
 
 export const NOTE_NAMES = [
@@ -18,9 +18,9 @@ export const NOTE_NAMES = [
 ] as const
 
 /**
- * Конвертирует название ноты в pitch class (0-11)
- * @param name - Название ноты ('C', 'C#', 'D', ...)
- * @returns Pitch class (0-11) или -1 если не найдено
+ * Converts note name to pitch class (0-11)
+ * @param name - Note name ('C', 'C#', 'D', ...)
+ * @returns Pitch class (0-11) or -1 if not found
  */
 export function noteNameToPitchClass(name: string): number {
   const index = NOTE_NAMES.indexOf(name as (typeof NOTE_NAMES)[number])
@@ -28,9 +28,9 @@ export function noteNameToPitchClass(name: string): number {
 }
 
 /**
- * Конвертирует pitch class в название ноты
+ * Converts pitch class to note name
  * @param pc - Pitch class (0-11)
- * @returns Название ноты
+ * @returns Note name
  */
 export function pitchClassToNoteName(pc: number): string {
   const normalized = ((pc % 12) + 12) % 12

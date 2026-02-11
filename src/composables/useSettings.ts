@@ -23,12 +23,12 @@ const DEFAULTS: SettingsData = {
   bloomIntensity: 0.85,
   bloomThreshold: 0.28,
   bloomRadius: 0.1,
-  ghostOpacity: 0.52,   // Хорошо заметный шлейф, не перебивает струны
-  ghostFadeSpeed: 0.045, // Умеренное затухание — призраки успевают проявиться
-  ghostBlur: 0.6,        // Мягкое размытие, форма следа сохраняется
-  smokeIntensity: 1.0,   // Интенсивность волн дыма
-  turbulence: 0.5,       // Турбулентность дыма
-  qualityPreset: 'high' as QualityPreset,  // Качество графики
+  ghostOpacity: 0.52,   // Well-visible trail, doesn't overpower the strings
+  ghostFadeSpeed: 0.045, // Moderate fade-out - ghosts have time to manifest
+  ghostBlur: 0.6,        // Soft blur, trail shape is preserved
+  smokeIntensity: 1.0,   // Intensity of smoke waves
+  turbulence: 0.5,       // Smoke turbulence
+  qualityPreset: 'high' as QualityPreset,  // Graphics quality
 }
 
 // Module-level shared state (singleton)
@@ -64,7 +64,7 @@ function loadFromStorage(): void {
       if (parsed.qualityPreset !== undefined) qualityPreset.value = parsed.qualityPreset
     }
   } catch (e) {
-    // ignored — используем дефолты
+    // ignored - using defaults
   }
 }
 
@@ -112,7 +112,7 @@ export function useSettings(): UseSettingsReturn {
       const devices = await navigator.mediaDevices.enumerateDevices()
       availableDevices.value = devices.filter((d) => d.kind === 'audioinput')
     } catch (e) {
-      console.warn('Не удалось получить список устройств:', e)
+      console.warn('Failed to get device list:', e)
       availableDevices.value = []
     }
   }

@@ -1,5 +1,5 @@
 // Spectrum Vertex Shader
-// UV + лёгкая волна по верхнему краю (полярное сияние)
+// UV + light wave at top edge (aurora)
 
 uniform float uTime;
 
@@ -10,7 +10,7 @@ void main() {
 
   vec3 pos = position;
   float isTop = step(0.01, uv.y);
-  // Мягкая волна по верхней линии — «занавес» сияния
+  // Soft wave along top line — "curtain" of aurora
   pos.y += sin(uTime * 0.6 + pos.x * 0.4) * 0.08 * isTop;
 
   gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);

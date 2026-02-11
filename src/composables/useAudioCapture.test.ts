@@ -52,7 +52,7 @@ describe('useAudioCapture', () => {
       await capture.startCapture()
 
       expect(capture.isCapturing.value).toBe(false)
-      expect(capture.error.value).toContain('запрещён')
+      expect(capture.error.value).toContain('denied')
     })
 
     it('should handle NotFoundError', async () => {
@@ -62,7 +62,7 @@ describe('useAudioCapture', () => {
       const capture = useAudioCapture()
       await capture.startCapture()
 
-      expect(capture.error.value).toContain('не найден')
+      expect(capture.error.value).toContain('not found')
     })
 
     it('should handle NotReadableError', async () => {
@@ -72,7 +72,7 @@ describe('useAudioCapture', () => {
       const capture = useAudioCapture()
       await capture.startCapture()
 
-      expect(capture.error.value).toContain('другим приложением')
+      expect(capture.error.value).toContain('another application')
     })
 
     it('should request permission during capture', async () => {

@@ -1,25 +1,22 @@
 // Star Particle Fragment Shader
-// Круглые светящиеся точки с мягкими краями
+// Round glowing points with color diversity
 
-uniform float uBrightness; // Audio reactive brightness (1.0 = normal)
+uniform float uBrightness;
 
 varying float vAlpha;
+varying vec3 vColor;
 
 void main() {
-  // Круглая форма с мягкими краями
   vec2 center = gl_PointCoord - vec2(0.5);
   float dist = length(center);
 
-  // Soft edges с gaussian-like falloff
+  // Soft edges with gaussian-like falloff
   float radius = 0.5;
   float edge = smoothstep(radius, radius * 0.3, dist);
 
-  // Glow эффект (ярче в центре)
+  // Glow effect (brighter in center)
   float glow = 1.0 - smoothstep(0.0, radius, dist);
-  glow = pow(glow, 2.0); // Более яркий центр
+  glow = pow(glow, 2.0);
 
-  // Финальный цвет: белые звезды с легким теплым оттенком
-  vec3 starColor = vec3(1.0, 0.98, 0.95); // Слегка теплый белый
-
-  gl_FragColor = vec4(starColor * uBrightness, edge * glow * vAlpha * uBrightness);
+  gl_FragColor = vec4(vColor * uBrightness, edge * glow * vAlpha * uBrightness);
 }

@@ -2,35 +2,35 @@ import { ref, computed, onUnmounted } from 'vue'
 import type { UseAudioCaptureReturn } from '@/types'
 
 /**
- * Composable для захвата звука с микрофона
- * Использует Web Audio API для захвата и анализа аудио
+ * Composable for capturing audio from microphone
+ * Uses Web Audio API for capture and analysis
  */
 export function useAudioCapture(): UseAudioCaptureReturn {
-  // Реактивные состояния
+  // Reactive states
   const isCapturing = ref<boolean>(false)
   const isRequestingPermission = ref<boolean>(false)
   const error = ref<string | null>(null)
   const audioLevel = ref<number>(0)
 
-  // Web Audio API объекты
+  // Web Audio API objects
   let audioContext: AudioContext | null = null
   let mediaStream: MediaStream | null = null
   let analyserNode: AnalyserNode | null = null
   let microphoneSource: MediaStreamAudioSourceNode | null = null
   let animationFrameId: number | null = null
 
-  // Буфер для анализа уровня сигнала
+  // Buffer for signal level analysis
   let dataArray: Uint8Array | null = null
 
   /**
-   * Запускает захват звука с микрофона
+   * Starts audio capture from microphone
    */
   const startCapture = async (deviceId: string = ''): Promise<void> => {
     try {
       error.value = null
       isRequestingPermission.value = true
 
-      // Формируем audio constraints
+      // Form audio constraints
       const audioConstraints: MediaTrackConstraints = {
         echoCancellation: false,
         noiseSuppression: false,
@@ -40,50 +40,50 @@ export function useAudioCapture(): UseAudioCaptureReturn {
         audioConstraints.deviceId = { exact: deviceId }
       }
 
-      // Запрос доступа к микрофону
+      // Request microphone access
       mediaStream = await navigator.mediaDevices.getUserMedia({
         audio: audioConstraints
       })
 
-      // Создаём AudioContext
+      // Create AudioContext
       audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
 
-      // Создаём источник из MediaStream
+      // Create source from MediaStream
       microphoneSource = audioContext.createMediaStreamSource(mediaStream)
 
-      // Создаём AnalyserNode для анализа частот
+      // Create AnalyserNode for frequency analysis
       analyserNode = audioContext.createAnalyser()
-      analyserNode.fftSize = 4096 // Баланс между точностью и производительностью
-      analyserNode.smoothingTimeConstant = 0.7 // Среднее сглаживание
+      analyserNode.fftSize = 4096 // Balance between accuracy and performance
+      analyserNode.smoothingTimeConstant = 0.7 // Average smoothing
 
-      // Подключаем микрофон к анализатору
+      // Connect microphone to analyzer
       microphoneSource.connect(analyserNode)
 
-      // Создаём буфер для данных
+      // Create buffer for data
       const bufferLength = analyserNode.frequencyBinCount
       dataArray = new Uint8Array(bufferLength)
 
-      // Запускаем анализ уровня сигнала
+      // Start signal level monitoring
       startAudioLevelMonitoring()
 
       isCapturing.value = true
       isRequestingPermission.value = false
 
-      console.log('🎤 Захват звука запущен')
+      console.log('Audio capture started')
     } catch (err) {
-      console.error('❌ Ошибка при захвате звука:', err)
+      console.error('Error capturing audio:', err)
 
       const error_ = err as DOMException
-      // Обработка различных типов ошибок
+      // Handle different error types
       if (error_.name === 'NotAllowedError' || error_.name === 'PermissionDeniedError') {
-        error.value = 'Доступ к микрофону запрещён. Разрешите доступ в настройках браузера.'
+        error.value = 'Microphone access denied. Enable access in browser settings.'
       } else if (error_.name === 'NotFoundError') {
-        error.value = 'Микрофон не найден. Подключите микрофон и попробуйте снова.'
+        error.value = 'Microphone not found. Connect a microphone and try again.'
       } else if (error_.name === 'NotReadableError') {
         error.value =
-          'Микрофон используется другим приложением. Закройте другие приложения и попробуйте снова.'
+          'Microphone is in use by another app. Close other apps and try again.'
       } else {
-        error.value = `Ошибка при доступе к микрофону: ${error_.message}`
+        error.value = `Microphone access error: ${error_.message}`
       }
 
       isRequestingPermission.value = false
@@ -91,29 +91,29 @@ export function useAudioCapture(): UseAudioCaptureReturn {
   }
 
   /**
-   * Останавливает захват звука
+   * Stops audio capture
    */
   const stopCapture = (): void => {
     try {
-      // Останавливаем мониторинг уровня
+      // Stop level monitoring
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId)
         animationFrameId = null
       }
 
-      // Отключаем все источники
+      // Disconnect all sources
       if (microphoneSource) {
         microphoneSource.disconnect()
         microphoneSource = null
       }
 
-      // Останавливаем MediaStream
+      // Stop MediaStream
       if (mediaStream) {
         mediaStream.getTracks().forEach((track) => track.stop())
         mediaStream = null
       }
 
-      // Закрываем AudioContext
+      // Close AudioContext
       if (audioContext && audioContext.state !== 'closed') {
         audioContext.close()
         audioContext = null
@@ -124,16 +124,16 @@ export function useAudioCapture(): UseAudioCaptureReturn {
       audioLevel.value = 0
       isCapturing.value = false
 
-      console.log('🎤 Захват звука остановлен')
+      console.log('Audio capture stopped')
     } catch (err) {
-      console.error('❌ Ошибка при остановке захвата:', err)
+      console.error('Error stopping capture:', err)
       const error_ = err as Error
-      error.value = `Ошибка при остановке: ${error_.message}`
+      error.value = `Stop error: ${error_.message}`
     }
   }
 
   /**
-   * Запускает мониторинг уровня аудио сигнала
+   * Starts monitoring audio signal level
    */
   const startAudioLevelMonitoring = (): void => {
     const updateAudioLevel = (): void => {
@@ -141,21 +141,21 @@ export function useAudioCapture(): UseAudioCaptureReturn {
         return
       }
 
-      // Получаем данные из анализатора
+      // Get data from analyzer
       analyserNode.getByteTimeDomainData(dataArray as any)
 
-      // Вычисляем RMS (Root Mean Square) для определения уровня громкости
+      // Calculate RMS (Root Mean Square) for loudness level
       let sum = 0
       for (let i = 0; i < dataArray.length; i++) {
-        const normalized = ((dataArray[i] ?? 0) - 128) / 128 // Нормализуем от -1 до 1
+        const normalized = ((dataArray[i] ?? 0) - 128) / 128 // Normalize from -1 to 1
         sum += normalized * normalized
       }
       const rms = Math.sqrt(sum / dataArray.length)
 
-      // Обновляем уровень (от 0 до 1)
-      audioLevel.value = Math.min(rms * 2, 1) // Умножаем на 2 для лучшей чувствительности
+      // Update level (0 to 1)
+      audioLevel.value = Math.min(rms * 2, 1) // Multiply by 2 for better sensitivity
 
-      // Запрашиваем следующий кадр
+      // Request next frame
       animationFrameId = requestAnimationFrame(updateAudioLevel)
     }
 
@@ -163,7 +163,7 @@ export function useAudioCapture(): UseAudioCaptureReturn {
   }
 
   /**
-   * Переключает на другой микрофон (stop + start)
+   * Switches to different microphone (stop + start)
    */
   const switchDevice = async (newDeviceId: string): Promise<void> => {
     if (isCapturing.value) {
@@ -173,24 +173,24 @@ export function useAudioCapture(): UseAudioCaptureReturn {
   }
 
   /**
-   * Получает доступ к AnalyserNode для дальнейшего анализа
+   * Gets AnalyserNode for further analysis
    */
   const getAnalyserNode = (): AnalyserNode | null => {
     return analyserNode
   }
 
   /**
-   * Получает доступ к AudioContext
+   * Gets AudioContext
    */
   const getAudioContext = (): AudioContext | null => {
     return audioContext
   }
 
-  // Computed свойства
+  // Computed properties
   const hasError = computed<boolean>(() => error.value !== null)
   const canCapture = computed<boolean>(() => !isCapturing.value && !isRequestingPermission.value)
 
-  // Очистка при размонтировании компонента
+  // Cleanup on component unmount
   onUnmounted(() => {
     if (isCapturing.value) {
       stopCapture()
@@ -198,7 +198,7 @@ export function useAudioCapture(): UseAudioCaptureReturn {
   })
 
   return {
-    // Состояния
+    // States
     isCapturing,
     isRequestingPermission,
     error,
@@ -206,7 +206,7 @@ export function useAudioCapture(): UseAudioCaptureReturn {
     hasError,
     canCapture,
 
-    // Методы
+    // Methods
     startCapture,
     stopCapture,
     switchDevice,

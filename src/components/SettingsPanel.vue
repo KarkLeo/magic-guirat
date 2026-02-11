@@ -3,8 +3,8 @@
     <div v-if="isOpen" class="settings-overlay" @click.self="$emit('close')">
       <div class="settings-panel">
         <div class="settings-header">
-          <h2 class="settings-title">Настройки</h2>
-          <button class="settings-close" aria-label="Закрыть" @click="$emit('close')">
+          <h2 class="settings-title">Settings</h2>
+          <button class="settings-close" aria-label="Close" @click="$emit('close')">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path d="M5 5L15 15M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             </svg>
@@ -14,7 +14,7 @@
         <div class="settings-body">
           <!-- Quality Preset -->
           <div class="settings-section">
-            <label class="settings-label">Качество графики</label>
+            <label class="settings-label">Graphics Quality</label>
             <div class="quality-presets">
               <button
                 v-for="preset in qualityOptions"
@@ -27,35 +27,35 @@
               </button>
             </div>
             <div class="settings-range-labels">
-              <span>Для слабых ПК</span>
-              <span>Максимум эффектов</span>
+              <span>For weak PCs</span>
+              <span>Maximum effects</span>
             </div>
           </div>
 
           <div class="settings-divider"></div>
 
-          <!-- Микрофон -->
+          <!-- Microphone -->
           <div class="settings-section">
-            <label class="settings-label">Микрофон</label>
+            <label class="settings-label">Microphone</label>
             <select
               v-model="selectedDeviceId"
               class="settings-select"
             >
-              <option value="">По умолчанию</option>
+              <option value="">Default</option>
               <option
                 v-for="device in availableDevices"
                 :key="device.deviceId"
                 :value="device.deviceId"
               >
-                {{ device.label || `Микрофон ${device.deviceId.slice(0, 8)}...` }}
+                {{ device.label || `Microphone ${device.deviceId.slice(0, 8)}...` }}
               </option>
             </select>
           </div>
 
-          <!-- Чувствительность -->
+          <!-- Sensitivity -->
           <div class="settings-section">
             <label class="settings-label">
-              Чувствительность
+              Sensitivity
               <span class="settings-value">{{ formattedThreshold }}</span>
             </label>
             <input
@@ -67,15 +67,15 @@
               class="settings-range"
             />
             <div class="settings-range-labels">
-              <span>Высокая</span>
-              <span>Низкая</span>
+              <span>High</span>
+              <span>Low</span>
             </div>
           </div>
 
           <!-- Bloom Intensity -->
           <div class="settings-section">
             <label class="settings-label">
-              Интенсивность свечения
+              Glow Intensity
               <span class="settings-value">{{ formattedBloom }}</span>
             </label>
             <input
@@ -87,15 +87,15 @@
               class="settings-range settings-range-bloom"
             />
             <div class="settings-range-labels">
-              <span>Слабое</span>
-              <span>Магическое ✨</span>
+              <span>Weak</span>
+              <span>Magical ✨</span>
             </div>
           </div>
 
           <!-- Bloom Threshold -->
           <div class="settings-section">
             <label class="settings-label">
-              Порог свечения
+              Glow Threshold
               <span class="settings-value">{{ formattedThresholdValue }}</span>
             </label>
             <input
@@ -107,15 +107,15 @@
               class="settings-range"
             />
             <div class="settings-range-labels">
-              <span>Всё светит</span>
-              <span>Только яркое</span>
+              <span>Everything glows</span>
+              <span>Only bright</span>
             </div>
           </div>
 
           <!-- Bloom Radius -->
           <div class="settings-section">
             <label class="settings-label">
-              Размер свечения
+              Glow Size
               <span class="settings-value">{{ formattedRadiusValue }}</span>
             </label>
             <input
@@ -127,8 +127,8 @@
               class="settings-range"
             />
             <div class="settings-range-labels">
-              <span>Маленький</span>
-              <span>Большой</span>
+              <span>Small</span>
+              <span>Large</span>
             </div>
           </div>
 
@@ -138,7 +138,7 @@
           <!-- Ghost Opacity -->
           <div class="settings-section">
             <label class="settings-label">
-              Прозрачность призраков
+              Ghost Transparency
               <span class="settings-value">{{ formattedGhostOpacity }}</span>
             </label>
             <input
@@ -150,15 +150,15 @@
               class="settings-range"
             />
             <div class="settings-range-labels">
-              <span>Прозрачные</span>
-              <span>Видимые</span>
+              <span>Transparent</span>
+              <span>Visible</span>
             </div>
           </div>
 
           <!-- Ghost Fade Speed -->
           <div class="settings-section">
             <label class="settings-label">
-              Затухание призраков
+              Ghost Fade
               <span class="settings-value">{{ formattedGhostFadeSpeed }}</span>
             </label>
             <input
@@ -170,15 +170,15 @@
               class="settings-range"
             />
             <div class="settings-range-labels">
-              <span>Медленное</span>
-              <span>Быстрое</span>
+              <span>Slow</span>
+              <span>Fast</span>
             </div>
           </div>
 
           <!-- Ghost Blur -->
           <div class="settings-section">
             <label class="settings-label">
-              Размытие призраков
+              Ghost Blur
               <span class="settings-value">{{ formattedGhostBlur }}</span>
             </label>
             <input
@@ -190,17 +190,17 @@
               class="settings-range"
             />
             <div class="settings-range-labels">
-              <span>Четкие</span>
-              <span>Дымные</span>
+              <span>Sharp</span>
+              <span>Smoky</span>
             </div>
           </div>
 
-          <!-- Новые настройки дыма -->
+          <!-- New smoke settings -->
           <div class="settings-divider"></div>
-          
+
           <div class="settings-section">
             <label class="settings-label">
-              Интенсивность волн
+              Wave Intensity
               <span class="settings-value">{{ formattedSmokeIntensity }}</span>
             </label>
             <input
@@ -212,14 +212,14 @@
               class="settings-range"
             />
             <div class="settings-range-labels">
-              <span>Спокойные</span>
-              <span>Активные</span>
+              <span>Calm</span>
+              <span>Active</span>
             </div>
           </div>
 
           <div class="settings-section">
             <label class="settings-label">
-              Турбулентность
+              Turbulence
               <span class="settings-value">{{ formattedTurbulence }}</span>
             </label>
             <input
@@ -231,15 +231,15 @@
               class="settings-range"
             />
             <div class="settings-range-labels">
-              <span>Плавные</span>
-              <span>Клубящиеся</span>
+              <span>Smooth</span>
+              <span>Swirling</span>
             </div>
           </div>
         </div>
 
         <div class="settings-footer">
           <button class="settings-reset" @click="handleReset">
-            По умолчанию
+            Defaults
           </button>
         </div>
       </div>
@@ -284,9 +284,9 @@ const {
 } = useSettings()
 
 const qualityOptions = [
-  { value: 'low', label: 'Низкое' },
-  { value: 'medium', label: 'Среднее' },
-  { value: 'high', label: 'Высокое' },
+  { value: 'low', label: 'Low' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'high', label: 'High' },
 ]
 
 const formattedThreshold = computed(() => noiseThreshold.value.toFixed(3))
@@ -299,7 +299,7 @@ const formattedGhostBlur = computed(() => ghostBlur.value.toFixed(1))
 const formattedSmokeIntensity = computed(() => smokeIntensity.value.toFixed(1))
 const formattedTurbulence = computed(() => turbulence.value.toFixed(2))
 
-// Обновляем список устройств при открытии панели
+// Update device list when panel opens
 watch(
   () => props.isOpen,
   (open) => {

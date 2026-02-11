@@ -3,13 +3,14 @@ import nebulaVertexShader from '@/shaders/nebulaVertex.glsl?raw'
 import nebulaFragmentShader from '@/shaders/nebulaFragment.glsl?raw'
 
 const NEBULA_CONFIGS = [
-  { color: 0x6366f1, x: -15, y: 8, z: -40, scale: 18, opacity: 0.08, breathSpeed: 0.0003, breathPhase: 0 },
-  { color: 0xec4899, x: 12, y: -5, z: -55, scale: 22, opacity: 0.06, breathSpeed: 0.00025, breathPhase: 2.1 },
-  { color: 0x8b5cf6, x: -5, y: -10, z: -70, scale: 25, opacity: 0.05, breathSpeed: 0.0002, breathPhase: 4.2 },
+  { color: 0x6366f1, x: -15, y: 8, z: -40, scale: 18, opacity: 0.12, breathSpeed: 0.0003, breathPhase: 0 },
+  { color: 0xec4899, x: 12, y: -5, z: -55, scale: 22, opacity: 0.10, breathSpeed: 0.00025, breathPhase: 2.1 },
+  { color: 0x8b5cf6, x: -5, y: -10, z: -70, scale: 25, opacity: 0.08, breathSpeed: 0.0002, breathPhase: 4.2 },
+  { color: 0x0d9488, x: 18, y: 12, z: -65, scale: 20, opacity: 0.09, breathSpeed: 0.00022, breathPhase: 1.4 },
 ]
 
 /**
- * Создаёт 3 полупрозрачных туманности для космической атмосферы
+ * Creates semi-transparent nebulae for cosmic atmosphere
  * @param {THREE.Scene} scene
  * @returns {{ nebulae: Array, sharedGeometry: THREE.PlaneGeometry }}
  */
@@ -23,6 +24,7 @@ export const createNebulae = (scene) => {
         uColor: { value: new THREE.Color(cfg.color) },
         uOpacity: { value: cfg.opacity },
         uTime: { value: 0 },
+        uAudioBoost: { value: 0.0 },
       },
       vertexShader: nebulaVertexShader,
       fragmentShader: nebulaFragmentShader,
@@ -51,21 +53,24 @@ export const createNebulae = (scene) => {
 }
 
 /**
- * Breathing анимация + audio reactivity для туманностей
+ * Breathing animation + audio reactivity for nebulae
  */
 export const updateNebulae = (nebulaeData, time, audioBoost) => {
   if (!nebulaeData) return
   nebulaeData.nebulae.forEach((neb) => {
-    const breath = Math.sin(time * neb.breathSpeed + neb.breathPhase) * 0.05 + 1.0
+    // More expressive breathing: ±8% (was ±5%)
+    const breath = Math.sin(time * neb.breathSpeed + neb.breathPhase) * 0.08 + 1.0
     neb.mesh.scale.setScalar(neb.baseScale * breath)
     neb.mesh.material.uniforms.uTime.value = time
-    neb.mesh.material.uniforms.uOpacity.value = neb.baseOpacity * (1.0 + audioBoost * 0.5)
+    // Stronger audio reactivity: *0.8 (was *0.5)
+    neb.mesh.material.uniforms.uOpacity.value = neb.baseOpacity * (1.0 + audioBoost * 0.8)
+    neb.mesh.material.uniforms.uAudioBoost.value = audioBoost
     neb.mesh.rotation.z += 0.00003
   })
 }
 
 /**
- * Удаляет туманности из сцены и освобождает ресурсы
+ * Removes nebulae from scene and frees resources
  */
 export const disposeNebulae = (scene, nebulaeData) => {
   if (!nebulaeData) return

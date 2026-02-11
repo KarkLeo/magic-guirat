@@ -1,14 +1,14 @@
 # Constants
 
-Централизованные константы приложения Magic Guitar.
+Centralized application constants for Magic Guitar.
 
-## Структура
+## Structure
 
 ```
 src/constants/
-├── colors.ts      - Цветовая палитра
+├── colors.ts      - Color palette
 ├── index.ts       - Barrel export
-└── README.md      - Эта документация
+└── README.md      - This documentation
 ```
 
 ---
@@ -17,66 +17,66 @@ src/constants/
 
 ### COLORS
 
-Основные цвета приложения, организованные по категориям:
+Main application colors, organized by categories:
 
 #### background
-Цвета для фона и космической атмосферы:
+Colors for background and cosmic atmosphere:
 ```typescript
-COLORS.background.deepPurple  // '#1a0033' - глубокий фиолетовый
-COLORS.background.darkBlue    // '#0a192f' - тёмно-синий
-COLORS.background.darkest     // '#020617' - самый тёмный
-COLORS.background.current     // '#0f0c29' - текущий фон сцены
+COLORS.background.deepPurple  // '#1a0033' - deep purple
+COLORS.background.darkBlue    // '#0a192f' - dark blue
+COLORS.background.darkest     // '#020617' - darkest
+COLORS.background.current     // '#0f0c29' - current scene background
 ```
 
 #### strings
-Цвета струн (градиент индиго → фиолетовый → розовый):
+String colors (gradient indigo → purple → pink):
 ```typescript
-COLORS.strings.indigo   // '#6366f1' - индиго (холодный)
-COLORS.strings.purple   // '#8b5cf6' - фиолетовый (средний)
-COLORS.strings.pink     // '#ec4899' - розовый (тёплый)
+COLORS.strings.indigo   // '#6366f1' - indigo (cool)
+COLORS.strings.purple   // '#8b5cf6' - purple (medium)
+COLORS.strings.pink     // '#ec4899' - pink (warm)
 
-// Индивидуальные цвета для каждой струны (E A D G B e)
-COLORS.strings.string1  // '#ec4899' - 1-я (e) розовый
-COLORS.strings.string2  // '#f472b6' - 2-я (B) светло-розовый
-COLORS.strings.string3  // '#c084fc' - 3-я (G) светло-фиолетовый
-COLORS.strings.string4  // '#8b5cf6' - 4-я (D) фиолетовый
-COLORS.strings.string5  // '#7c3aed' - 5-я (A) тёмно-фиолетовый
-COLORS.strings.string6  // '#6366f1' - 6-я (E) индиго
+// Individual colors for each string (E A D G B e)
+COLORS.strings.string1  // '#ec4899' - 1st (e) pink
+COLORS.strings.string2  // '#f472b6' - 2nd (B) light pink
+COLORS.strings.string3  // '#c084fc' - 3rd (G) light purple
+COLORS.strings.string4  // '#8b5cf6' - 4th (D) purple
+COLORS.strings.string5  // '#7c3aed' - 5th (A) dark purple
+COLORS.strings.string6  // '#6366f1' - 6th (E) indigo
 ```
 
 #### spectrum
-Цвета для frequency spectrum visualizer:
+Colors for frequency spectrum visualizer:
 ```typescript
-COLORS.spectrum.cyan    // '#06b6d4' - циан (низкие частоты)
-COLORS.spectrum.indigo  // '#6366f1' - индиго (средние)
-COLORS.spectrum.pink    // '#ec4899' - розовый (высокие)
-COLORS.spectrum.amber   // '#f59e0b' - янтарь (очень высокие)
+COLORS.spectrum.cyan    // '#06b6d4' - cyan (low frequencies)
+COLORS.spectrum.indigo  // '#6366f1' - indigo (mid)
+COLORS.spectrum.pink    // '#ec4899' - pink (high)
+COLORS.spectrum.amber   // '#f59e0b' - amber (very high)
 ```
 
 #### particles
-Цвета для системы частиц:
+Colors for particle system:
 ```typescript
-COLORS.particles.white   // '#ffffff' - белый (основной)
-COLORS.particles.cyan    // '#06b6d4' - циан (холодный акцент)
-COLORS.particles.pink    // '#ec4899' - розовый (тёплый акцент)
-COLORS.particles.purple  // '#8b5cf6' - фиолетовый (средний)
+COLORS.particles.white   // '#ffffff' - white (primary)
+COLORS.particles.cyan    // '#06b6d4' - cyan (cool accent)
+COLORS.particles.pink    // '#ec4899' - pink (warm accent)
+COLORS.particles.purple  // '#8b5cf6' - purple (medium)
 ```
 
 #### ui
-Цвета UI элементов:
+UI element colors:
 ```typescript
-COLORS.ui.border         // '#a8b5ff' - рамки
-COLORS.ui.borderOpacity  // 0.2 - прозрачность рамок
-COLORS.ui.text           // '#ffffff' - текст
-COLORS.ui.textSecondary  // '#9ca3af' - вторичный текст
-COLORS.ui.accent         // '#ec4899' - акцентный цвет
+COLORS.ui.border         // '#a8b5ff' - borders
+COLORS.ui.borderOpacity  // 0.2 - border opacity
+COLORS.ui.text           // '#ffffff' - text
+COLORS.ui.textSecondary  // '#9ca3af' - secondary text
+COLORS.ui.accent         // '#ec4899' - accent color
 ```
 
 ---
 
 ### GRADIENTS
 
-Массивы цветов для плавных переходов:
+Color arrays for smooth transitions:
 
 ```typescript
 GRADIENTS.background  // ['#1a0033', '#0a192f', '#020617']
@@ -86,7 +86,7 @@ GRADIENTS.particles   // ['#ffffff', '#06b6d4', '#ec4899']
 GRADIENTS.chordName   // ['#ec4899', '#f59e0b']
 ```
 
-**Использование:**
+**Usage:**
 ```javascript
 // CSS gradient
 background: linear-gradient(to bottom, ...GRADIENTS.background)
@@ -99,7 +99,7 @@ const colors = GRADIENTS.string.map(c => new THREE.Color(c))
 
 ### COLORS_RGB
 
-RGB значения для Three.js (диапазон [0, 1]):
+RGB values for Three.js (range [0, 1]):
 
 ```typescript
 COLORS_RGB.strings.indigo  // { r: 0.388, g: 0.4, b: 0.945 }
@@ -107,7 +107,7 @@ COLORS_RGB.strings.purple  // { r: 0.545, g: 0.361, b: 0.965 }
 COLORS_RGB.strings.pink    // { r: 0.925, g: 0.282, b: 0.6 }
 ```
 
-**Использование в ShaderMaterial:**
+**Usage in ShaderMaterial:**
 ```javascript
 const color = COLORS_RGB.strings.pink
 uniforms.uColor.value = new THREE.Vector3(color.r, color.g, color.b)
@@ -117,27 +117,27 @@ uniforms.uColor.value = new THREE.Vector3(color.r, color.g, color.b)
 
 ### ColorUtils
 
-Утилиты для работы с цветами:
+Utilities for working with colors:
 
 #### `hexToRgb(hex: string)`
-Конвертирует HEX → RGB для Three.js
+Converts HEX → RGB for Three.js
 ```typescript
 const rgb = ColorUtils.hexToRgb('#6366f1')
 // { r: 0.388, g: 0.4, b: 0.945 }
 ```
 
 #### `getStringColor(index: number)`
-Получает цвет струны по индексу (0-5):
+Gets string color by index (0-5):
 ```typescript
-const color = ColorUtils.getStringColor(0) // '#6366f1' (6-я струна)
-const color = ColorUtils.getStringColor(5) // '#ec4899' (1-я струна)
+const color = ColorUtils.getStringColor(0) // '#6366f1' (6th string)
+const color = ColorUtils.getStringColor(5) // '#ec4899' (1st string)
 ```
 
 ---
 
-## Примеры использования
+## Usage Examples
 
-### В Vue компонентах
+### In Vue components
 
 ```vue
 <script setup>
@@ -155,20 +155,20 @@ const gradient = GRADIENTS.background.join(', ')
 </style>
 ```
 
-### В Three.js компонентах
+### In Three.js components
 
 ```javascript
 import { ColorUtils, COLORS } from '@/constants'
 
-// Использование ColorUtils
+// Using ColorUtils
 const colorHex = ColorUtils.getStringColor(index)
 const baseColor = new THREE.Color(colorHex)
 
-// Или напрямую
+// Or directly
 const color = new THREE.Color(COLORS.strings.pink)
 ```
 
-### В GLSL шейдерах
+### In GLSL shaders
 
 ```javascript
 import { COLORS_RGB } from '@/constants'
@@ -188,35 +188,35 @@ const material = new THREE.ShaderMaterial({
 
 ## Design System
 
-Цветовая палитра основана на:
-- **Космическая тема**: тёмные фоны (deepPurple, darkBlue)
-- **Магическое свечение**: яркие акценты (pink, cyan, amber)
-- **Градиенты**: плавные переходы холодный → тёплый
-- **Контраст**: достаточный для читаемости (WCAG AA)
+Color palette is based on:
+- **Cosmic theme**: dark backgrounds (deepPurple, darkBlue)
+- **Magical glow**: bright accents (pink, cyan, amber)
+- **Gradients**: smooth transitions cool → warm
+- **Contrast**: sufficient for readability (WCAG AA)
 
-### Цветовая теория
+### Color Theory
 
-**Струны** (холодный → тёплый):
-- 6-я струна (E, низкая): индиго (холодный, глубокий)
-- 1-я струна (e, высокая): розовый (тёплый, яркий)
+**Strings** (cool → warm):
+- 6th string (E, low): indigo (cool, deep)
+- 1st string (e, high): pink (warm, bright)
 
-**Spectrum** (частота → цвет):
-- Низкие частоты: циан (холодный, спокойный)
-- Высокие частоты: янтарь (тёплый, энергичный)
+**Spectrum** (frequency → color):
+- Low frequencies: cyan (cool, calm)
+- High frequencies: amber (warm, energetic)
 
 ---
 
-## Расширение
+## Extension
 
-Для добавления новых цветов:
+To add new colors:
 
-1. Добавить в соответствующую категорию в `COLORS`
-2. При необходимости добавить RGB версию в `COLORS_RGB`
-3. Обновить Type definitions
-4. Обновить эту документацию
+1. Add to appropriate category in `COLORS`
+2. If needed, add RGB version to `COLORS_RGB`
+3. Update type definitions
+4. Update this documentation
 
 ```typescript
-// Пример
+// Example
 export const COLORS = {
   // ... existing
   newCategory: {
@@ -229,8 +229,8 @@ export const COLORS = {
 
 ## Best Practices
 
-1. **Всегда используйте константы** вместо хардкода цветов
-2. **Используйте ColorUtils** для конвертации HEX → RGB
-3. **Группируйте по категориям** для лучшей организации
-4. **Документируйте новые цвета** в этом README
-5. **TypeScript типизация** через `as const` для автодополнения
+1. **Always use constants** instead of hardcoding colors
+2. **Use ColorUtils** for HEX → RGB conversion
+3. **Group by categories** for better organization
+4. **Document new colors** in this README
+5. **TypeScript typing** via `as const` for autocomplete

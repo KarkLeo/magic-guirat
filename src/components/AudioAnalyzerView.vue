@@ -1,9 +1,9 @@
 <template>
   <div class="audio-analyzer-view">
-    <!-- Фоновый слой (частицы, туманности, градиент) -->
+    <!-- Background layer (particles, nebulae, gradient) -->
     <BackgroundLayer :rms-level="audioLevel" />
 
-    <!-- Кнопка захвата звука -->
+    <!-- Audio capture button -->
     <AudioCaptureButton
       :is-capturing="isCapturing"
       :is-requesting-permission="isRequestingPermission"
@@ -11,7 +11,7 @@
       @toggle-capture="toggleCapture"
     />
 
-    <!-- Визуализация струн гитары — ВСЕГДА рендерим (избегаем пересоздания Three.js) -->
+    <!-- Guitar strings visualization — ALWAYS render (avoid Three.js recreation) -->
     <GuitarStringsVisualization
       :active-string-indices="isCapturing ? activeStringIndices : []"
       :string-intensities="isCapturing ? stringIntensities : {}"
@@ -21,19 +21,22 @@
       :analyser-node="analyserNode"
     />
 
-    <!-- Отображение аккорда / ноты -->
+    <!-- Chord / note display -->
     <transition name="fade">
       <ChordNameDisplay
-        v-if="isCapturing && showChordDisplay"
+        v-if="isCapturing"
         :chord="currentChord"
         :candidates="chordCandidates"
         :detected-note="detectedNote"
         :pitch-confidence="pitchConfidence"
         :detection-mode="detectionMode"
+        :is-active="hasActiveDetection"
+        :has-history="chordHistory.length > 0"
+        :last-chord="lastDetected"
       />
     </transition>
 
-    <!-- История аккордов — всегда видна пока идёт захват -->
+    <!-- Chord history — always visible while capturing -->
     <div v-if="isCapturing && chordHistory.length > 1" class="chord-history">
       <span v-for="(item, i) in chordHistory.slice(1)" :key="item.timestamp" class="history-item">
         <span v-if="i > 0" class="history-separator">&middot;</span>
@@ -59,10 +62,10 @@ import BackgroundLayer from './BackgroundLayer.vue'
 import GuitarStringsVisualization from './GuitarStringsVisualization.vue'
 import ChordNameDisplay from './ChordNameDisplay.vue'
 
-// Настройки
+// Settings
 const { selectedDeviceId, noiseThreshold } = useSettings()
 
-// Используем composable для работы с аудио
+// Use composable for audio processing
 const {
   isCapturing,
   isRequestingPermission,
@@ -74,16 +77,16 @@ const {
   getAnalyserNode,
 } = useAudioCapture()
 
-// Получаем AnalyserNode для визуализатора
+// Get AnalyserNode for visualizer
 const analyserNode = computed(() => isCapturing.value ? getAnalyserNode() : null)
 
-// Используем frequency analyzer для pitch detection (YIN)
+// Use frequency analyzer for pitch detection (YIN)
 const frequencyAnalyzer = computed(() => {
   const node = analyserNode.value
   return node ? useFrequencyAnalyzer(node, { noiseThreshold: noiseThreshold.value }) : null
 })
 
-// Используем chroma analyzer для аккордов
+// Use chroma analyzer for chords
 const chromaAnalyzer = computed(() => {
   const node = analyserNode.value
   return node ? useChromaAnalyzer(node) : null
@@ -95,7 +98,7 @@ const chromagramRef = computed(() => chromaAnalyzer.value?.chromagram.value || n
 const { currentChord, chordCandidates, isChordDetected, detectedStrings } =
   useChordRecognition(activePitchClassesRef, chromagramRef)
 
-// Деструктуризация FFT данных для pitch detection
+// Destructuring FFT data for pitch detection
 const detectedPitch = computed(() => frequencyAnalyzer.value?.dominantFrequency.value || 0)
 const detectedNote = computed(() => {
   if (!frequencyAnalyzer.value || !detectedPitch.value) {
@@ -104,10 +107,10 @@ const detectedNote = computed(() => {
   return frequencyAnalyzer.value.frequencyToNote(detectedPitch.value)
 })
 
-// Confidence из YIN алгоритма
+// Confidence from YIN algorithm
 const pitchConfidence = computed(() => frequencyAnalyzer.value?.pitchConfidence.value || 0)
 
-// Режим определения: 'chord' или 'single'
+// Detection mode: 'chord' or 'single'
 const detectionMode = computed(() => {
   if (isChordDetected.value && detectedStrings.value.length >= 2) {
     return 'chord'
@@ -115,7 +118,7 @@ const detectionMode = computed(() => {
   return 'single'
 })
 
-// Определение активной струны для single mode
+// Determine active string for single mode
 const singleActiveStringIndex = computed(() => {
   const note = detectedNote.value
   const pitch = detectedPitch.value
@@ -134,7 +137,7 @@ const singleActiveStringIndex = computed(() => {
   return activeString ? activeString.string.index : null
 })
 
-// Активные индексы струн (Array)
+// Active string indices (Array)
 const activeStringIndices = computed(() => {
   if (detectionMode.value === 'chord') {
     return detectedStrings.value
@@ -143,7 +146,7 @@ const activeStringIndices = computed(() => {
   return idx !== null ? [idx] : []
 })
 
-// Интенсивности струн из chromagram
+// String intensities from chromagram
 const stringIntensities = computed(() => {
   const intensities = {}
   const chromagram = chromagramRef.value
@@ -170,7 +173,7 @@ const stringIntensities = computed(() => {
   return intensities
 })
 
-// История аккордов/нот
+// Chord/note history
 const { chordHistory } = useChordHistory(
   currentChord,
   detectedNote,
@@ -179,28 +182,39 @@ const { chordHistory } = useChordHistory(
   pitchConfidence,
 )
 
-// Задержка скрытия дисплея аккордов (3 секунды после последнего детекта)
+// Track active detection state
 const hasActiveDetection = computed(() => isChordDetected.value || !!detectedNote.value.note)
-const showChordDisplay = ref(false)
-let hideTimeout = null
+
+// Last detected chord/note — stays visible when nothing is playing
+const lastDetected = ref(null)
 
 watch(hasActiveDetection, (active) => {
   if (active) {
-    clearTimeout(hideTimeout)
-    showChordDisplay.value = true
-  } else {
-    hideTimeout = setTimeout(() => {
-      showChordDisplay.value = false
-    }, 3000)
+    const entry = detectionMode.value === 'chord' && currentChord.value
+      ? { displayName: currentChord.value.displayName, rootName: currentChord.value.rootName, type: currentChord.value.type, mode: 'chord' }
+      : detectedNote.value?.note
+        ? { displayName: detectedNote.value.note + detectedNote.value.octave, note: detectedNote.value.note, octave: detectedNote.value.octave, mode: 'single' }
+        : null
+    if (entry) lastDetected.value = entry
   }
 })
 
-// S8-T1: Экспорт RMS уровня через CSS custom property для audio-reactive UI
+// Also update lastDetected on chord/note changes while active
+watch([currentChord, detectedNote, detectionMode], () => {
+  if (!hasActiveDetection.value) return
+  if (detectionMode.value === 'chord' && currentChord.value) {
+    lastDetected.value = { displayName: currentChord.value.displayName, rootName: currentChord.value.rootName, type: currentChord.value.type, mode: 'chord' }
+  } else if (detectedNote.value?.note) {
+    lastDetected.value = { displayName: detectedNote.value.note + detectedNote.value.octave, note: detectedNote.value.note, octave: detectedNote.value.octave, mode: 'single' }
+  }
+})
+
+// S8-T1: Export RMS level via CSS custom property for audio-reactive UI
 watchEffect(() => {
   document.documentElement.style.setProperty('--rms-level', String(audioLevel.value || 0))
 })
 
-// Переключение состояния захвата
+// Toggle capture state
 const toggleCapture = async () => {
   if (isCapturing.value) {
     stopCapture()
@@ -215,7 +229,7 @@ const toggleCapture = async () => {
   }
 }
 
-// Переключение микрофона при смене устройства в настройках
+// Switch microphone when device changes in settings
 watch(selectedDeviceId, async (newDeviceId) => {
   if (isCapturing.value) {
     if (frequencyAnalyzer.value) frequencyAnalyzer.value.stopAnalysis()
@@ -224,7 +238,7 @@ watch(selectedDeviceId, async (newDeviceId) => {
   }
 })
 
-// Запускаем frequency analysis и chroma analysis когда захват активен
+// Start frequency and chroma analysis when capture is active
 watch(
   () => isCapturing.value,
   async (capturing) => {
@@ -237,9 +251,8 @@ watch(
   },
 )
 
-// Очистка при размонтировании компонента
+// Cleanup on component unmount
 onUnmounted(() => {
-  clearTimeout(hideTimeout)
   if (isCapturing.value) {
     stopCapture()
   }
@@ -258,7 +271,7 @@ onUnmounted(() => {
   inset: 0;
 }
 
-/* Transition для появления/исчезновения overlay элементов */
+/* Transition for overlay elements appearance/disappearance */
 .fade-enter-active {
   transition: opacity 0.4s ease;
 }
@@ -272,7 +285,7 @@ onUnmounted(() => {
   opacity: 0;
 }
 
-/* История аккордов — фиксированная позиция */
+/* Chord history — fixed position */
 .chord-history {
   position: fixed;
   top: 9rem;
@@ -300,13 +313,14 @@ onUnmounted(() => {
 }
 
 .history-name {
-  font-size: 1.1rem;
-  font-weight: 500;
-  background: linear-gradient(135deg, rgba(192, 132, 252, 0.6), rgba(240, 147, 251, 0.4));
+  font-size: 1.2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, rgba(192, 132, 252, 0.75), rgba(240, 147, 251, 0.55));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   white-space: nowrap;
+  filter: drop-shadow(0 1px 4px rgba(192, 132, 252, 0.2));
 }
 
 @media (max-width: 768px) {

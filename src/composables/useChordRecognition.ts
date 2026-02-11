@@ -6,8 +6,8 @@ import { noteNameToPitchClass } from '@/utils/noteUtils'
 import type { ChordCandidate, UseChordRecognitionReturn } from '@/types'
 
 /**
- * Composable для распознавания аккордов из chromagram данных
- * Включает стабилизацию (3 фрейма) для предотвращения мерцания
+ * Composable for chord recognition from chromagram data
+ * Includes stabilization (3 frames) to prevent flickering
  */
 export function useChordRecognition(
   activePitchClassesRef: Ref<Set<number>>,
@@ -18,14 +18,14 @@ export function useChordRecognition(
   const isChordDetected = ref<boolean>(false)
   const detectedStrings = ref<number[]>([])
 
-  // Стабилизация: буфер последних фреймов
+  // Stabilization: buffer of last frames
   const STABILIZATION_FRAMES = 3
   const chordHistory: string[] = []
 
   /**
-   * Маппит pitch classes на гитарные струны
-   * @param pitchClasses - Набор pitch classes (0-11)
-   * @returns Массив индексов струн (1-6)
+   * Maps pitch classes to guitar strings
+   * @param pitchClasses - Set of pitch classes (0-11)
+   * @returns Array of string indices (1-6)
    */
   const mapPitchClassesToStrings = (pitchClasses: Set<number>): number[] => {
     const stringIndices: number[] = []
@@ -38,12 +38,12 @@ export function useChordRecognition(
     return stringIndices
   }
 
-  // Watch на изменение activePitchClasses
+  // Watch for changes in activePitchClasses
   watch(
     activePitchClassesRef,
     (newPitchClasses) => {
       if (!newPitchClasses || newPitchClasses.size < 2) {
-        // Недостаточно нот для аккорда — сбрасываем
+        // Not enough notes for chord — reset
         chordHistory.length = 0
         currentChord.value = null
         chordCandidates.value = []
@@ -52,7 +52,7 @@ export function useChordRecognition(
         return
       }
 
-      // Ищем аккорды
+      // Look for chords
       const chromagram = chromagramRef?.value || null
       const candidates = lookupChord(newPitchClasses, chromagram, 3)
 
@@ -67,13 +67,13 @@ export function useChordRecognition(
 
       const bestCandidate = candidates[0]!
 
-      // Стабилизация: добавляем в историю
+      // Stabilization: add to history
       chordHistory.push(bestCandidate.displayName)
       if (chordHistory.length > STABILIZATION_FRAMES) {
         chordHistory.shift()
       }
 
-      // Проверяем стабильность: все фреймы одинаковые
+      // Check stability: all frames same
       if (chordHistory.length >= STABILIZATION_FRAMES) {
         const allSame = chordHistory.every((c) => c === chordHistory[0])
         if (allSame) {

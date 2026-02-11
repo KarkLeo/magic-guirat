@@ -2,17 +2,17 @@ import { ref } from 'vue'
 import type { NoteInfo, UseFrequencyAnalyzerReturn } from '@/types'
 
 /**
- * Composable для частотного анализа аудио с использованием YIN autocorrelation
- * Оптимизирован для диапазона гитары (82-1200 Hz)
+ * Composable for audio frequency analysis using YIN autocorrelation
+ * Optimized for guitar frequency range (82-1200 Hz)
  *
- * ВАЖНО: Не использует onUnmounted, т.к. может вызываться внутри computed.
- * Очистка должна выполняться вручную через stopAnalysis()
+ * IMPORTANT: Does not use onUnmounted since it can be called inside computed().
+ * Cleanup must be performed manually via stopAnalysis()
  */
 export function useFrequencyAnalyzer(
   analyserNode: AnalyserNode | null,
   options: { noiseThreshold?: number } = {}
 ): UseFrequencyAnalyzerReturn {
-  // Реактивные состояния
+  // Reactive states
   const frequencyData = ref<Uint8Array | null>(null)
   const dominantFrequency = ref<number>(0)
   const pitchConfidence = ref<number>(0)
@@ -21,46 +21,46 @@ export function useFrequencyAnalyzer(
   // Animation frame ID
   let animationFrameId: number | null = null
 
-  // Частотные константы
-  const GUITAR_MIN_FREQ = 82 // E2 (самая низкая струна)
-  const GUITAR_MAX_FREQ = 1200 // E6 (высокие ноты)
+  // Frequency constants
+  const GUITAR_MIN_FREQ = 82 // E2 (lowest string)
+  const GUITAR_MAX_FREQ = 1200 // E6 (high notes)
 
-  // YIN параметры
+  // YIN parameters
   const YIN_THRESHOLD = 0.15
   const YIN_MIN_FREQ = GUITAR_MIN_FREQ
   const YIN_MAX_FREQ = GUITAR_MAX_FREQ
 
-  // Noise threshold (настраиваемый через options)
+  // Noise threshold (configurable via options)
   const noiseThreshold = options.noiseThreshold || 0.01
 
-  // Буферы (переиспользуемые для производительности)
+  // Buffers (reusable for performance)
   let timeDomainBuffer: Float32Array | null = null
   let spectrumBuffer: Uint8Array | null = null
 
   /**
-   * Запускает частотный анализ
+   * Starts frequency analysis
    */
   const startAnalysis = (): void => {
     if (!analyserNode) {
-      console.warn('AnalyserNode не предоставлен')
+      console.warn('AnalyserNode not provided')
       return
     }
 
     isAnalyzing.value = true
 
-    // Инициализируем буферы
+    // Initialize buffers
     const fftSize = analyserNode.fftSize
     timeDomainBuffer = new Float32Array(fftSize)
     spectrumBuffer = new Uint8Array(analyserNode.frequencyBinCount)
 
-    // Запускаем цикл анализа
+    // Start analysis loop
     analyzeFrequencies()
 
-    console.log('Частотный анализ запущен (YIN, fftSize=' + fftSize + ')')
+    console.log('Frequency analysis started (YIN, fftSize=' + fftSize + ')')
   }
 
   /**
-   * Останавливает частотный анализ
+   * Stops frequency analysis
    */
   const stopAnalysis = (): void => {
     if (animationFrameId) {
@@ -77,30 +77,30 @@ export function useFrequencyAnalyzer(
   }
 
   /**
-   * Основной цикл анализа частот
+   * Main frequency analysis loop
    */
   const analyzeFrequencies = (): void => {
     if (!analyserNode || !isAnalyzing.value) {
       return
     }
 
-    // Получаем time-domain данные для YIN pitch detection
+    // Get time-domain data for YIN pitch detection
     if (timeDomainBuffer) {
       analyserNode.getFloatTimeDomainData(timeDomainBuffer as any)
 
-      // Получаем frequency-domain данные для визуализации спектра
+      // Get frequency-domain data for spectrum visualization
       if (spectrumBuffer) {
         analyserNode.getByteFrequencyData(spectrumBuffer as any)
         frequencyData.value = new Uint8Array(spectrumBuffer)
 
-        // Проверяем уровень сигнала (RMS)
+        // Check signal level (RMS)
         const rms = calculateRMS(timeDomainBuffer)
 
         if (rms < noiseThreshold) {
           dominantFrequency.value = 0
           pitchConfidence.value = 0
         } else {
-          // YIN pitch detection на time-domain данных
+          // YIN pitch detection on time-domain data
           const sampleRate = analyserNode.context.sampleRate
           const result = yinDetectPitch(timeDomainBuffer, sampleRate)
 
@@ -110,12 +110,12 @@ export function useFrequencyAnalyzer(
       }
     }
 
-    // Запрашиваем следующий кадр
+    // Request next frame
     animationFrameId = requestAnimationFrame(analyzeFrequencies)
   }
 
   /**
-   * Вычисляет RMS (Root Mean Square) для определения уровня сигнала
+   * Calculates RMS (Root Mean Square) for signal level
    */
   const calculateRMS = (buffer: Float32Array): number => {
     let sum = 0
@@ -164,7 +164,7 @@ export function useFrequencyAnalyzer(
     const frequency = Math.round(sampleRate / refinedTau)
     const confidence = 1 - tauResult.value
 
-    // Отбрасываем результаты за пределами гитарного диапазона
+    // Discard results outside guitar range
     if (frequency < GUITAR_MIN_FREQ || frequency > GUITAR_MAX_FREQ) {
       return { frequency: 0, confidence: 0 }
     }
@@ -205,12 +205,12 @@ export function useFrequencyAnalyzer(
     const cmndf = new Float32Array(diff.length)
     let runningSum = 0
 
-    // Для tau < tauMin устанавливаем значения = 1 (они не используются)
+    // For tau < tauMin set values = 1 (not used)
     for (let tau = 0; tau < tauMin; tau++) {
       cmndf[tau] = 1
     }
 
-    // Подсчитываем running sum до tauMin
+    // Calculate running sum up to tauMin
     for (let tau = 1; tau < tauMin; tau++) {
       runningSum += diff[tau]!
     }
@@ -229,7 +229,7 @@ export function useFrequencyAnalyzer(
 
   /**
    * YIN Step 3: Absolute threshold
-   * Находит первый tau где cmndf(tau) < threshold и это локальный минимум
+   * Finds first tau where cmndf(tau) < threshold and is local minimum
    */
   const yinAbsoluteThreshold = (
     cmndf: Float32Array,
@@ -239,10 +239,10 @@ export function useFrequencyAnalyzer(
     let bestTau = -1
     let bestValue = 1
 
-    // Ищем первую долину ниже порога
+    // Look for first valley below threshold
     for (let tau = tauMin; tau < tauMax; tau++) {
       if ((cmndf[tau] ?? 0) < YIN_THRESHOLD) {
-        // Нашли точку ниже порога, ищем минимум этой долины
+        // Found point below threshold, find minimum of this valley
         while (tau + 1 < tauMax && (cmndf[tau + 1] ?? 0) < (cmndf[tau] ?? 0)) {
           tau++
         }
@@ -252,7 +252,7 @@ export function useFrequencyAnalyzer(
       }
     }
 
-    // Если не нашли ниже порога, ищем глобальный минимум
+    // If not found below threshold, find global minimum
     if (bestTau === -1) {
       for (let tau = tauMin; tau < tauMax; tau++) {
         if ((cmndf[tau] ?? 0) < bestValue) {
@@ -260,7 +260,7 @@ export function useFrequencyAnalyzer(
           bestTau = tau
         }
       }
-      // Если минимум слишком большой, считаем что pitch не определён
+      // If minimum too large, assume pitch not detected
       if (bestValue > 0.5) {
         return { tau: -1, value: 1 }
       }
@@ -271,7 +271,7 @@ export function useFrequencyAnalyzer(
 
   /**
    * YIN Step 4: Parabolic interpolation
-   * Уточняет tau между дискретными точками для sub-sample accuracy
+   * Refines tau between discrete points for sub-sample accuracy
    */
   const yinParabolicInterpolation = (
     cmndf: Float32Array,
@@ -297,11 +297,11 @@ export function useFrequencyAnalyzer(
   }
 
   /**
-   * Получает спектр в определённом диапазоне частот
-   * @param minFreq - Минимальная частота (Hz)
-   * @param maxFreq - Максимальная частота (Hz)
-   * @param numBins - Количество bins для возврата (для ресемплинга)
-   * @returns Массив амплитуд (0-255)
+   * Gets spectrum in specific frequency range
+   * @param minFreq - Minimum frequency (Hz)
+   * @param maxFreq - Maximum frequency (Hz)
+   * @param numBins - Number of bins to return (for resampling)
+   * @returns Array of amplitudes (0-255)
    */
   const getFrequencySpectrum = (
     minFreq: number = GUITAR_MIN_FREQ,
@@ -316,14 +316,14 @@ export function useFrequencyAnalyzer(
     const binCount = analyserNode.frequencyBinCount
     const binWidth = sampleRate / 2 / binCount
 
-    // Индексы для диапазона
+    // Indices for range
     const minBin = Math.floor(minFreq / binWidth)
     const maxBin = Math.ceil(maxFreq / binWidth)
 
-    // Извлекаем данные в диапазоне
+    // Extract data in range
     const rangeData = Array.from(frequencyData.value.slice(minBin, maxBin))
 
-    // Ресемплим до нужного количества bins
+    // Resample to desired number of bins
     if (numBins === rangeData.length) {
       return rangeData
     }
@@ -335,7 +335,7 @@ export function useFrequencyAnalyzer(
       const startIdx = Math.floor(i * step)
       const endIdx = Math.floor((i + 1) * step)
 
-      // Усредняем значения в каждом "бакете"
+      // Average values in each "bucket"
       let sum = 0
       let count = 0
       for (let j = startIdx; j < endIdx; j++) {
@@ -350,8 +350,8 @@ export function useFrequencyAnalyzer(
   }
 
   /**
-   * Конвертирует частоту в ноту
-   * @param frequency - Частота в Hz
+   * Converts frequency to note
+   * @param frequency - Frequency in Hz
    * @returns { note: 'A', octave: 4, cents: 0 }
    */
   const frequencyToNote = (frequency: number): NoteInfo => {
@@ -359,8 +359,8 @@ export function useFrequencyAnalyzer(
       return { note: '', octave: 0, cents: 0 }
     }
 
-    const A4 = 440 // Стандартная настройка A4 = 440 Hz
-    const C0 = A4 * Math.pow(2, -4.75) // Частота C0
+    const A4 = 440 // Standard tuning A4 = 440 Hz
+    const C0 = A4 * Math.pow(2, -4.75) // Frequency of C0
 
     const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 
@@ -379,19 +379,19 @@ export function useFrequencyAnalyzer(
   }
 
   return {
-    // Состояния
+    // States
     frequencyData,
     dominantFrequency,
     pitchConfidence,
     isAnalyzing,
 
-    // Методы
+    // Methods
     startAnalysis,
     stopAnalysis,
     getFrequencySpectrum,
     frequencyToNote,
 
-    // Константы
+    // Constants
     GUITAR_MIN_FREQ,
     GUITAR_MAX_FREQ
   }

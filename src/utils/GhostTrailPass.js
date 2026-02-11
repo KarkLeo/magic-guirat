@@ -1,6 +1,6 @@
 /**
- * GhostTrailPass — кастомный post-processing pass для эффекта "призрачных следов"
- * Использует ping-pong технику с двумя render targets для накопления изображения
+ * GhostTrailPass — custom post-processing pass for "ghost trails" effect
+ * Uses ping-pong technique with two render targets for image accumulation
  */
 
 import { Pass } from 'three/examples/jsm/postprocessing/Pass.js'
@@ -11,11 +11,11 @@ export class GhostTrailPass extends Pass {
   constructor(width, height, resolutionScale = 0.5) {
     super()
 
-    // Важно: указываем, что pass должен swap buffers
+    // Important: specify that pass should swap buffers
     this.needsSwap = true
     this.resolutionScale = resolutionScale
 
-    // Создаём два render targets для ping-pong (уменьшенное разрешение)
+    // Create two render targets for ping-pong (reduced resolution)
     const rtOptions = {
       minFilter: THREE.LinearFilter,
       magFilter: THREE.LinearFilter,
@@ -29,23 +29,23 @@ export class GhostTrailPass extends Pass {
     this.renderTargetA = new THREE.WebGLRenderTarget(scaledW, scaledH, rtOptions)
     this.renderTargetB = new THREE.WebGLRenderTarget(scaledW, scaledH, rtOptions)
 
-    // Начальная настройка: A = write, B = read
+    // Initial setup: A = write, B = read
     this.currentWriteTarget = this.renderTargetA
     this.currentReadTarget = this.renderTargetB
 
-    // Создаём shader material для accumulation
+    // Create shader material for accumulation
     this.material = new THREE.ShaderMaterial({
       uniforms: {
-        tDiffuse: { value: null },     // Текущий кадр (из input buffer)
-        tPrevious: { value: this.currentReadTarget.texture }, // Предыдущий накопленный кадр
-        uFadeSpeed: { value: 0.05 },   // Скорость затухания (0.05 = плавное затухание 2-3 сек)
-        uOpacity: { value: 0.7 },      // Прозрачность ghost trails
-        uDriftOffset: { value: new THREE.Vector2(0, 0) }, // Базовое смещение (без дрейфа)
-        uResolution: { value: new THREE.Vector2(scaledW, scaledH) }, // Разрешение для box blur
-        uBlurAmount: { value: 1.5 },   // Интенсивность размытия
-        uTime: { value: 0.0 },         // Время для анимации волн
-        uSmokeIntensity: { value: 1.0 }, // Интенсивность волн дыма
-        uTurbulence: { value: 0.5 },   // Турбулентность дыма
+        tDiffuse: { value: null },     // Current frame (from input buffer)
+        tPrevious: { value: this.currentReadTarget.texture }, // Previous accumulated frame
+        uFadeSpeed: { value: 0.05 },   // Fade speed (0.05 = smooth fade 2-3 sec)
+        uOpacity: { value: 0.7 },      // Ghost trails transparency
+        uDriftOffset: { value: new THREE.Vector2(0, 0) }, // Base offset (no drift)
+        uResolution: { value: new THREE.Vector2(scaledW, scaledH) }, // Resolution for box blur
+        uBlurAmount: { value: 1.5 },   // Blur intensity
+        uTime: { value: 0.0 },         // Time for wave animation
+        uSmokeIntensity: { value: 1.0 }, // Smoke wave intensity
+        uTurbulence: { value: 0.5 },   // Smoke turbulence
       },
       vertexShader: `
         varying vec2 vUv;
@@ -57,7 +57,7 @@ export class GhostTrailPass extends Pass {
       fragmentShader: trailAccumulationShader,
     })
 
-    // Copy material для простого копирования текстуры (без accumulation)
+    // Copy material for simple texture copying (without accumulation)
     this.copyMaterial = new THREE.ShaderMaterial({
       uniforms: {
         tDiffuse: { value: null },
@@ -78,36 +78,36 @@ export class GhostTrailPass extends Pass {
       `,
     })
 
-    // Fullscreen quad для рендеринга shader
+    // Fullscreen quad for shader rendering
     const geometry = new THREE.PlaneGeometry(2, 2)
     this.quad = new THREE.Mesh(geometry, this.material)
     this.scene = new THREE.Scene()
     this.scene.add(this.quad)
 
-    // Orthographic camera для fullscreen quad
+    // Orthographic camera for fullscreen quad
     this.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
   }
 
   /**
-   * Основная функция рендеринга pass
+   * Main rendering function for pass
    * @param {THREE.WebGLRenderer} renderer
    * @param {THREE.WebGLRenderTarget} writeBuffer - output buffer
-   * @param {THREE.WebGLRenderTarget} readBuffer - input buffer (текущий кадр)
+   * @param {THREE.WebGLRenderTarget} readBuffer - input buffer (current frame)
    */
   render(renderer, writeBuffer, readBuffer) {
-    // Обновляем время для анимации
+    // Update time for animation
     this.material.uniforms.uTime.value += 0.016 // ~60 FPS
 
-    // ШАГ 1: Рендерим accumulation shader в currentWriteTarget
+    // STEP 1: Render accumulation shader into currentWriteTarget
     this.material.uniforms.tDiffuse.value = readBuffer.texture
     this.material.uniforms.tPrevious.value = this.currentReadTarget.texture
 
     renderer.setRenderTarget(this.currentWriteTarget)
-    // НЕ очищаем буфер! Это сохранит накопление
+    // Don't clear buffer! This preserves accumulation
     this.quad.material = this.material
     renderer.render(this.scene, this.camera)
 
-    // ШАГ 2: Копируем результат в output (writeBuffer или screen) используя copyMaterial
+    // STEP 2: Copy result to output (writeBuffer or screen) using copyMaterial
     this.copyMaterial.uniforms.tDiffuse.value = this.currentWriteTarget.texture
 
     if (this.renderToScreen) {
@@ -116,34 +116,34 @@ export class GhostTrailPass extends Pass {
       renderer.setRenderTarget(writeBuffer)
     }
 
-    // Очищаем output буфер (это нормально)
+    // Clear output buffer (this is normal)
     renderer.clear()
     this.quad.material = this.copyMaterial
     renderer.render(this.scene, this.camera)
 
-    // Восстанавливаем material на quad
+    // Restore material on quad
     this.quad.material = this.material
 
-    // ШАГ 3: Swap ping-pong targets для следующего кадра
+    // STEP 3: Swap ping-pong targets for next frame
     const temp = this.currentReadTarget
     this.currentReadTarget = this.currentWriteTarget
     this.currentWriteTarget = temp
   }
 
   /**
-   * Изменение размера render targets
+   * Resize render targets
    */
   setSize(width, height) {
     const scaledW = Math.max(1, Math.floor(width * this.resolutionScale))
     const scaledH = Math.max(1, Math.floor(height * this.resolutionScale))
     this.renderTargetA.setSize(scaledW, scaledH)
     this.renderTargetB.setSize(scaledW, scaledH)
-    // Обновляем uniform разрешения для box blur
+    // Update resolution uniform for box blur
     this.material.uniforms.uResolution.value.set(scaledW, scaledH)
   }
 
   /**
-   * Очистка ресурсов
+   * Cleanup resources
    */
   dispose() {
     this.renderTargetA.dispose()
@@ -154,7 +154,7 @@ export class GhostTrailPass extends Pass {
   }
 
   /**
-   * Публичные методы для настройки параметров
+   * Public methods for parameter adjustment
    */
   setFadeSpeed(value) {
     this.material.uniforms.uFadeSpeed.value = value

@@ -1,14 +1,14 @@
 /**
- * Утилиты для маппинга нот на струны гитары
- * Стандартная настройка гитары (E Standard Tuning)
+ * Utilities for mapping notes to guitar strings
+ * Standard guitar tuning (E Standard Tuning)
  */
 
 import type { GuitarString, NoteInfo } from '@/types'
 
 /**
- * Конфигурация струн гитары (от самой толстой к самой тонкой)
- * Индекс 0 = 6-я струна (самая толстая, E2)
- * Индекс 5 = 1-я струна (самая тонкая, E4)
+ * Guitar string configuration (thick to thin)
+ * Index 0 = 6th string (thickest, E2)
+ * Index 5 = 1st string (thinnest, E4)
  */
 export const GUITAR_STRINGS: readonly GuitarString[] = [
   {
@@ -62,19 +62,19 @@ export const GUITAR_STRINGS: readonly GuitarString[] = [
 ]
 
 /**
- * Диапазон частот для каждой струны
- * На гитаре можно играть ноты на разных ладах, поэтому диапазон шире
- * Каждая струна покрывает примерно 7-9 ладов в комфортной зоне
+ * Frequency range for each string
+ * Guitars can play notes on different frets, so range is wider
+ * Each string covers approximately 7-9 frets in comfortable zone
  */
 const SEMITONE_RATIO = Math.pow(2, 1 / 12) // ~1.059
 
-// Диапазон для определения струны: от -1 полутона до +7 полутонов (около 7 ладов)
+// Range for string detection: from -1 semitone to +7 semitones (about 7 frets)
 const TOLERANCE_SEMITONES_DOWN = 1
 const TOLERANCE_SEMITONES_UP = 7
 
 /**
- * Вычисляет диапазон частот для струны с толерантностью
- * @param baseFrequency - Базовая частота струны
+ * Calculates frequency range for string with tolerance
+ * @param baseFrequency - Base string frequency
  * @returns { min, max }
  */
 function getFrequencyRange(baseFrequency: number): { min: number; max: number } {
@@ -84,16 +84,16 @@ function getFrequencyRange(baseFrequency: number): { min: number; max: number } 
 }
 
 /**
- * Определяет какая струна играет по частоте
- * @param frequency - Частота в Hz
- * @returns Информация о струне или null если не найдено
+ * Determines which string plays based on frequency
+ * @param frequency - Frequency in Hz
+ * @returns String info or null if not found
  */
 export function getStringByFrequency(frequency: number): GuitarString | null {
   if (!frequency || frequency <= 0) {
     return null
   }
 
-  // Собираем все струны, в диапазон которых попадает частота
+  // Collect all strings in frequency range
   const matchingStrings: GuitarString[] = []
   for (const string of GUITAR_STRINGS) {
     const range = getFrequencyRange(string.frequency)
@@ -102,7 +102,7 @@ export function getStringByFrequency(frequency: number): GuitarString | null {
     }
   }
 
-  // Если нашли подходящие струны, выбираем ближайшую по полутоновому расстоянию
+  // If found matching strings, choose closest by semitone distance
   if (matchingStrings.length > 0) {
     return matchingStrings.reduce((closest, current) => {
       const closestDist = Math.abs(12 * Math.log2(frequency / closest.frequency))
@@ -111,36 +111,36 @@ export function getStringByFrequency(frequency: number): GuitarString | null {
     })
   }
 
-  // Если не нашли ни одной подходящей, ищем ближайшую струну (fallback)
+  // If no match found, find closest string (fallback)
   return findClosestString(frequency)
 }
 
 /**
- * Находит ближайшую струну по частоте (fallback метод)
- * @param frequency - Частота в Hz
- * @returns Ближайшая струна или null
+ * Finds closest string by frequency (fallback method)
+ * @param frequency - Frequency in Hz
+ * @returns Closest string or null
  */
 function findClosestString(frequency: number): GuitarString | null {
   if (!frequency || frequency <= 0) {
     return null
   }
 
-  // Слишком низкая или слишком высокая частота - игнорируем
-  const MIN_FREQ = 60 // Ниже этого не определяем (ниже C2)
-  const MAX_FREQ = 500 // Выше этого не определяем (выше C5)
+  // Too low or too high frequency - ignore
+  const MIN_FREQ = 60 // Below this don't detect (lower than C2)
+  const MAX_FREQ = 500 // Above this don't detect (higher than C5)
 
   if (frequency < MIN_FREQ || frequency > MAX_FREQ) {
     return null
   }
 
-  // Ищем струну с минимальным полутоновым расстоянием
+  // Find string with minimum semitone distance
   let closestString: GuitarString | null = null
   let minSemitones = Infinity
 
   for (const string of GUITAR_STRINGS) {
     const semitoneDistance = Math.abs(12 * Math.log2(frequency / string.frequency))
 
-    // Если разница больше октавы (12 полутонов), скорее всего это не та струна
+    // If difference > octave (12 semitones), probably wrong string
     if (semitoneDistance > 12) {
       continue
     }
@@ -155,24 +155,24 @@ function findClosestString(frequency: number): GuitarString | null {
 }
 
 /**
- * Определяет какая струна играет по ноте
- * @param note - Название ноты (E, A, D, etc.)
- * @param octave - Октава
- * @returns Информация о струне или null если не найдено
+ * Determines which string plays based on note
+ * @param note - Note name (E, A, D, etc.)
+ * @param octave - Octave number
+ * @returns String info or null if not found
  */
 export function getStringByNote(note: string, octave: number): GuitarString | null {
   if (!note || typeof octave !== 'number') {
     return null
   }
 
-  // Точное совпадение
+  // Exact match
   const exactMatch = GUITAR_STRINGS.find((s) => s.note === note && s.octave === octave)
   if (exactMatch) {
     return exactMatch
   }
 
-  // Если октава отличается на ±1, проверяем с толерантностью
-  // (например, играют на ладу и нота сместилась в другую октаву)
+  // If octave differs by ±1, check with tolerance
+  // (e.g., playing on fret and note shifted to different octave)
   const tolerantMatch = GUITAR_STRINGS.find(
     (s) => s.note === note && Math.abs(s.octave - octave) <= 1
   )
@@ -181,9 +181,9 @@ export function getStringByNote(note: string, octave: number): GuitarString | nu
 }
 
 /**
- * Получает информацию о струне по индексу (1-6)
- * @param stringIndex - Номер струны (1-6)
- * @returns Информация о струне или null
+ * Gets string info by index (1-6)
+ * @param stringIndex - String number (1-6)
+ * @returns String info or null
  */
 export function getStringByIndex(stringIndex: number): GuitarString | null {
   return GUITAR_STRINGS.find((s) => s.index === stringIndex) || null
@@ -196,9 +196,9 @@ interface ActiveStringResult {
 }
 
 /**
- * Определяет активную струну из pitch данных
+ * Determines active string from pitch data
  * @param pitchData - { note, octave, frequency }
- * @returns { string, confidence } или null
+ * @returns { string, confidence } or null
  */
 export function getActiveString(
   pitchData: Partial<NoteInfo> & { frequency?: number }
@@ -209,7 +209,7 @@ export function getActiveString(
 
   const { note, octave, frequency } = pitchData
 
-  // Приоритет 1: По частоте (самый точный)
+  // Priority 1: By frequency (most accurate)
   if (frequency && frequency > 0) {
     const stringByFreq = getStringByFrequency(frequency)
     if (stringByFreq) {
@@ -221,7 +221,7 @@ export function getActiveString(
     }
   }
 
-  // Приоритет 2: По ноте и октаве
+  // Priority 2: By note and octave
   if (note && typeof octave === 'number') {
     const stringByNote = getStringByNote(note, octave)
     if (stringByNote) {
@@ -237,17 +237,17 @@ export function getActiveString(
 }
 
 /**
- * Проверяет играется ли открытая струна (без лада)
- * @param frequency - Частота в Hz
- * @param tolerance - Толерантность в центах (default 50)
- * @returns Струна если это открытая струна
+ * Checks if playing open string (no fret)
+ * @param frequency - Frequency in Hz
+ * @param tolerance - Tolerance in cents (default 50)
+ * @returns String if open, null otherwise
  */
 export function isOpenString(frequency: number, tolerance: number = 50): GuitarString | null {
   if (!frequency || frequency <= 0) {
     return null
   }
 
-  // Толерантность в центах (100 центов = 1 полутон)
+  // Tolerance in cents (100 cents = 1 semitone)
   const toleranceRatio = Math.pow(2, tolerance / 1200)
 
   for (const string of GUITAR_STRINGS) {
@@ -263,17 +263,17 @@ export function isOpenString(frequency: number, tolerance: number = 50): GuitarS
 }
 
 /**
- * Получает цвет для струны по индексу
- * @param stringIndex - Индекс струны (1-6)
- * @returns Hex цвет
+ * Gets color for string by index
+ * @param stringIndex - String index (1-6)
+ * @returns Hex color
  */
 export function getStringColor(stringIndex: number): string {
   const string = getStringByIndex(stringIndex)
-  return string ? string.color : '#667eea' // Default фиолетовый
+  return string ? string.color : '#667eea' // Default purple
 }
 
 /**
- * Экспортируем константы для удобства
+ * Export constants for convenience
  */
 export const TOTAL_STRINGS = 6
 export const STRING_INDICES = [6, 5, 4, 3, 2, 1] as const

@@ -9,7 +9,7 @@ const SPECTRUM_X_MIN = -12
 const SPECTRUM_X_MAX = 12
 
 /**
- * Catmull-Rom сглаживание для массива данных
+ * Catmull-Rom smoothing for data array
  */
 const catmullRomSmooth = (data, output) => {
   const n = data.length
@@ -29,7 +29,7 @@ const catmullRomSmooth = (data, output) => {
 }
 
 /**
- * Мягкое сглаживание по 5 точкам
+ * Soft smoothing across 5 points
  */
 const smoothSpectrumLine = (data, output, radius = 2) => {
   const n = data.length
@@ -46,7 +46,7 @@ const smoothSpectrumLine = (data, output, radius = 2) => {
 }
 
 /**
- * Создаёт mesh спектра — заполненная область с деформируемыми вершинами
+ * Creates spectrum mesh — filled area with deformable vertices
  * @param {THREE.Scene} scene
  * @returns {{ mesh, geometry, material, smoothedSpectrum, smoothBuffer, finalBuffer }}
  */
@@ -127,11 +127,11 @@ export const createSpectrumMesh = scene => {
 }
 
 /**
- * Обновляет вершины спектра из frequency data + uniforms
- * @param {object} spectrumData - объект из createSpectrumMesh
- * @param {Float32Array|Uint8Array} freqData - данные спектра (0-255)
+ * Updates spectrum vertices from frequency data + uniforms
+ * @param {object} spectrumData - object from createSpectrumMesh
+ * @param {Float32Array|Uint8Array} freqData - spectrum data (0-255)
  * @param {number} time - performance.now()
- * @param {number} audioBoost - сглаженный audio boost (0-1)
+ * @param {number} audioBoost - smoothed audio boost (0-1)
  */
 export const updateSpectrum = (spectrumData, freqData, time, audioBoost) => {
   if (!spectrumData || !freqData) return
@@ -140,19 +140,19 @@ export const updateSpectrum = (spectrumData, freqData, time, audioBoost) => {
   const positions = geometry.attributes.position.array
   const numCols = SPECTRUM_BINS
 
-  // Catmull-Rom сглаживание
+  // Catmull-Rom smoothing
   catmullRomSmooth(freqData, smoothBuffer)
 
-  // Lerp к текущим значениям
+  // Lerp to current values
   for (let i = 0; i < numCols; i++) {
     const normalized = smoothBuffer[i] / 255
     smoothedSpectrum[i] += (normalized - smoothedSpectrum[i]) * 0.2
   }
 
-  // Дополнительное сглаживание линии
+  // Additional line smoothing
   smoothSpectrumLine(smoothedSpectrum, finalBuffer, 2)
 
-  // Обновляем верхний ряд вершин
+  // Update top row of vertices
   for (let i = 0; i < numCols; i++) {
     const topIdx = numCols + i
     positions[topIdx * 3 + 1] = SPECTRUM_Y_BASE + finalBuffer[i] * SPECTRUM_HEIGHT
@@ -171,14 +171,14 @@ export const updateSpectrum = (spectrumData, freqData, time, audioBoost) => {
   }
   const dominantFreq = freqData.length > 0 ? maxIdx / freqData.length : 0.5
 
-  // Обновляем uniforms
+  // Update uniforms
   material.uniforms.uTime.value = time * 0.001
   material.uniforms.uDominantFreq.value = dominantFreq
   material.uniforms.uBoost.value = audioBoost
 }
 
 /**
- * Удаляет спектр из сцены и освобождает ресурсы
+ * Removes spectrum from scene and frees resources
  */
 export const disposeSpectrum = (scene, spectrumData) => {
   if (!spectrumData) return

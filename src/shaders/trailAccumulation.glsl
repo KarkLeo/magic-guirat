@@ -1,50 +1,50 @@
 // Trail Accumulation Shader — Ghost Trails FBO Effect
-// Эффект клубящегося дыма с волновыми движениями в безветренном пространстве
+// Swirling smoke effect with wave motion in still space
 
-uniform sampler2D tDiffuse; // Текущий кадр (струны)
-uniform sampler2D tPrevious; // Предыдущий накопленный кадр
-uniform float uFadeSpeed; // Скорость затухания (0.03 - 0.15)
-uniform float uOpacity; // Общая прозрачность шлейфа (0.0 - 1.0)
-uniform vec2 uDriftOffset; // Базовое смещение UV (обычно 0,0)
-uniform vec2 uResolution; // Разрешение для blur
-uniform float uBlurAmount; // Размытие (0.0 - 2.0)
-uniform float uTime; // Время для анимации волн
-uniform float uSmokeIntensity; // Интенсивность волн (0.0 - 2.0)
-uniform float uTurbulence; // Турбулентность дыма (0.0 - 1.0)
+uniform sampler2D tDiffuse; // Current frame (strings)
+uniform sampler2D tPrevious; // Previous accumulated frame
+uniform float uFadeSpeed; // Fade speed (0.03 - 0.15)
+uniform float uOpacity; // Overall trail transparency (0.0 - 1.0)
+uniform vec2 uDriftOffset; // Base UV offset (usually 0,0)
+uniform vec2 uResolution; // Resolution for blur
+uniform float uBlurAmount; // Blur intensity (0.0 - 2.0)
+uniform float uTime; // Time for wave animation
+uniform float uSmokeIntensity; // Wave intensity (0.0 - 2.0)
+uniform float uTurbulence; // Smoke turbulence (0.0 - 1.0)
 
 varying vec2 vUv;
 
-// Простая шумовая функция для клубящегося дыма
+// Simple noise function for swirling smoke
 float noise(vec2 p) {
   return sin(p.x * 10.0) * sin(p.y * 10.0);
 }
 
-// Упрощённый FBM с 2 октавами (достаточно для дымного эффекта, -50% trig ops)
+// Simplified FBM with 2 octaves (sufficient for smoke effect, -50% trig ops)
 float fbm(vec2 p) {
   float value = 0.5 * noise(p);
   value += 0.25 * noise(p * 2.0);
   return value;
 }
 
-// Функция для создания волновых движений дыма
+// Function for creating wave motion of smoke
 vec2 smokeWave(vec2 uv, float time) {
-  // Движение вверх должно быть константным для feedback loop,
-  // а не расти бесконечно от времени.
+  // Upward movement must be constant for feedback loop,
+  // not infinitely growing from time
   float upward = 0.002;
 
-  // Волновые колебания по горизонтали (используем sin для цикличности)
+  // Horizontal wave oscillations (using sin for cyclicity)
   float waveX = sin(uv.y * 8.0 + time * 2.0) * 0.005;
 
-  // Клубящиеся движения (турбулентность) — время здесь ок, так как шум цикличен или случаен
+  // Swirling motion (turbulence) — time is OK here since noise is cyclic or random
   float turbulenceX = fbm(vec2(uv.x * 3.0, uv.y * 2.0 + time * 0.5)) * 0.008;
   float turbulenceY = fbm(vec2(uv.x * 2.0, uv.y * 3.0 + time * 0.4)) * 0.005;
 
-  // Комбинируем движения
-  // Чтобы дым шел ВВЕРХ, мы должны сэмплировать предыдущий кадр чуть НИЖЕ
+  // Combine motions
+  // For smoke to move UP, we must sample previous frame slightly BELOW
   return vec2(waveX + turbulenceX, -upward + turbulenceY);
 }
 
-// Лёгкий box blur 3x3
+// Simple 3x3 box blur
 vec4 boxBlur(sampler2D tex, vec2 uv, vec2 pixelSize, float blurAmount) {
   vec4 result = vec4(0.0);
   float total = 0.0;
@@ -74,11 +74,11 @@ void main() {
   vec4 current = texture2D(tDiffuse, vUv);
   vec2 pixelSize = 1.0 / uResolution;
 
-  // Применяем волновые движения дыма к UV координатам
+  // Apply wave motion of smoke to UV coordinates
   vec2 smokeOffset = smokeWave(vUv, uTime) * uSmokeIntensity;
   vec2 animatedUv = vUv + uDriftOffset + smokeOffset;
 
-  // Добавляем дополнительную турбулентность
+  // Add additional turbulence
   vec2 turbulence = vec2(
     sin(uTime * 3.0 + vUv.x * 5.0) * uTurbulence * 0.005,
     cos(uTime * 2.0 + vUv.y * 4.0) * uTurbulence * 0.003
@@ -87,14 +87,14 @@ void main() {
 
   vec4 previous = boxBlur(tPrevious, animatedUv, pixelSize, uBlurAmount);
 
-  // Затухание накопленного кадра
+  // Fade accumulated frame
   float fade = 1.0 - uFadeSpeed;
   previous.rgb *= fade;
   previous.a *= fade;
 
-  // Простое аддитивное накопление: текущие струны + затухающий след
-  // Без Reinhard и trailMask — они убивали накопление при колебании
-  // CompositeFullSceneWithGhostPass делает screen blend на финальном этапе
+  // Simple additive accumulation: current strings + fading trail
+  // Without Reinhard and trailMask — they broke accumulation with oscillation
+  // CompositeFullSceneWithGhostPass does screen blend at final stage
   vec3 blendedColor = current.rgb + previous.rgb * uOpacity;
 
   float finalAlpha = max(current.a, previous.a * uOpacity);

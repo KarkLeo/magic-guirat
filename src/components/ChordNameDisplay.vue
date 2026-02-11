@@ -1,36 +1,64 @@
 <template>
-  <div class="chord-display">
-    <transition name="chord-swap" mode="out-in">
-      <!-- Chord mode -->
-      <div v-if="detectionMode === 'chord' && chord" :key="chord?.displayName || 'chord'" class="chord-content">
+  <div class="chord-display" :class="{ 'is-dimmed': !isActive && hasHistory }">
+    <!-- Active detection -->
+    <template v-if="isActive">
+      <transition name="chord-swap" mode="out-in">
+        <!-- Chord mode -->
+        <div v-if="detectionMode === 'chord' && chord" :key="chord?.displayName || 'chord'" class="chord-content">
+          <div class="chord-name">
+            <span class="chord-root">{{ chord?.rootName || '' }}</span>
+            <span class="chord-suffix">{{ chordSuffix }}</span>
+          </div>
+
+          <div class="confidence-bar">
+            <div class="confidence-fill" :style="{ width: confidencePercent + '%' }"></div>
+          </div>
+
+          <div v-if="candidates.length > 0" class="chord-alternatives">
+            <span v-for="(alt, i) in candidates" :key="i" class="chord-alt">
+              {{ alt.displayName }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Single note mode -->
+        <div v-else-if="detectionMode === 'single' && detectedNote?.note" :key="detectedNote.note + detectedNote.octave" class="chord-content">
+          <div class="chord-name">
+            <span class="chord-root">{{ detectedNote.note }}</span>
+            <span class="chord-suffix note-octave">{{ detectedNote.octave }}</span>
+          </div>
+
+          <div class="confidence-bar">
+            <div class="confidence-fill" :style="{ width: Math.round(pitchConfidence * 100) + '%' }"></div>
+          </div>
+        </div>
+      </transition>
+    </template>
+
+    <!-- Dimmed last detected (when not playing) -->
+    <template v-else-if="lastChord">
+      <div class="chord-content dimmed-content">
         <div class="chord-name">
-          <span class="chord-root">{{ chord?.rootName || '' }}</span>
-          <span class="chord-suffix">{{ chordSuffix }}</span>
+          <span class="chord-root">{{ lastChordRoot }}</span>
+          <span class="chord-suffix" :class="{ 'note-octave': lastChord.mode === 'single' }">{{ lastChordSuffix }}</span>
         </div>
-
         <div class="confidence-bar">
-          <div class="confidence-fill" :style="{ width: confidencePercent + '%' }"></div>
-        </div>
-
-        <div v-if="candidates.length > 0" class="chord-alternatives">
-          <span v-for="(alt, i) in candidates" :key="i" class="chord-alt">
-            {{ alt.displayName }}
-          </span>
+          <div class="confidence-fill dimmed-fill" style="width: 0%"></div>
         </div>
       </div>
+    </template>
 
-      <!-- Single note mode -->
-      <div v-else-if="detectionMode === 'single' && detectedNote?.note" :key="detectedNote.note + detectedNote.octave" class="chord-content">
+    <!-- Placeholder when nothing played yet -->
+    <template v-else>
+      <div class="chord-content placeholder-content">
         <div class="chord-name">
-          <span class="chord-root">{{ detectedNote.note }}</span>
-          <span class="chord-suffix note-octave">{{ detectedNote.octave }}</span>
+          <span class="chord-root placeholder-text">— —</span>
         </div>
-
         <div class="confidence-bar">
-          <div class="confidence-fill" :style="{ width: Math.round(pitchConfidence * 100) + '%' }"></div>
+          <div class="confidence-fill" style="width: 0%"></div>
         </div>
       </div>
-    </transition>
+    </template>
 
   </div>
 </template>
@@ -60,11 +88,35 @@ const props = defineProps({
     type: String,
     default: 'single',
   },
+  isActive: {
+    type: Boolean,
+    default: false,
+  },
+  hasHistory: {
+    type: Boolean,
+    default: false,
+  },
+  lastChord: {
+    type: Object,
+    default: null,
+  },
 })
 
 const chordSuffix = computed(() => {
   if (!props.chord) return ''
   return CHORD_DISPLAY_NAMES[props.chord.type] || ''
+})
+
+const lastChordRoot = computed(() => {
+  if (!props.lastChord) return ''
+  if (props.lastChord.mode === 'chord') return props.lastChord.rootName || ''
+  return props.lastChord.note || ''
+})
+
+const lastChordSuffix = computed(() => {
+  if (!props.lastChord) return ''
+  if (props.lastChord.mode === 'chord') return CHORD_DISPLAY_NAMES[props.lastChord.type] || ''
+  return String(props.lastChord.octave || '')
 })
 
 const confidencePercent = computed(() => {
@@ -83,6 +135,11 @@ const confidencePercent = computed(() => {
   left: 1.5rem;
   z-index: 10;
   pointer-events: none;
+  transition: opacity 0.8s ease;
+}
+
+.chord-display.is-dimmed {
+  opacity: 1;
 }
 
 .chord-content {
@@ -131,6 +188,39 @@ const confidencePercent = computed(() => {
   opacity: 0.7;
 }
 
+/* Dimmed state — last detected chord/note */
+.dimmed-content .chord-root {
+  background: linear-gradient(135deg, rgba(192, 132, 252, 0.35), rgba(240, 147, 251, 0.25));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 2px 6px rgba(192, 132, 252, 0.15));
+  animation: none;
+}
+
+.dimmed-content .chord-suffix {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.3), rgba(232, 121, 249, 0.2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 2px 4px rgba(168, 85, 247, 0.1));
+}
+
+.dimmed-fill {
+  opacity: 0;
+}
+
+/* Placeholder state */
+.placeholder-content .chord-root {
+  background: linear-gradient(135deg, rgba(192, 132, 252, 0.2), rgba(240, 147, 251, 0.15));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: none;
+  animation: none;
+  letter-spacing: 0.15em;
+}
+
 .confidence-bar {
   width: 100px;
   height: 3px;
@@ -158,7 +248,7 @@ const confidencePercent = computed(() => {
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 
-/* Transition для смены аккорда — bounce-in с glow */
+/* Transition for chord change — bounce-in with glow */
 .chord-swap-enter-active {
   transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }

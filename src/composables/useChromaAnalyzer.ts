@@ -2,11 +2,11 @@ import { ref, shallowRef } from 'vue'
 import type { UseChromaAnalyzerReturn } from '@/types'
 
 /**
- * Composable для вычисления chromagram из FFT данных
- * Chromagram агрегирует FFT bins в 12 pitch classes (C, C#, D, ..., B)
+ * Composable for computing chromagram from FFT data
+ * Chromagram aggregates FFT bins into 12 pitch classes (C, C#, D, ..., B)
  *
- * ВАЖНО: Не использует onUnmounted, т.к. может вызываться внутри computed.
- * Очистка должна выполняться вручную через stopAnalysis()
+ * IMPORTANT: Does not use onUnmounted because it can be called inside computed().
+ * Cleanup must be performed manually via stopAnalysis()
  */
 export function useChromaAnalyzer(analyserNode: AnalyserNode | null): UseChromaAnalyzerReturn {
   const chromagram = shallowRef<Float32Array>(new Float32Array(12))
@@ -16,34 +16,34 @@ export function useChromaAnalyzer(analyserNode: AnalyserNode | null): UseChromaA
   let animationFrameId: number | null = null
   let spectrumBuffer: Uint8Array | null = null
 
-  // Частота C0 для расчёта pitch class
+  // Frequency of C0 for pitch class calculation
   const C0 = 16.35
 
-  // Минимальная частота для анализа (ниже E2 не интересно)
+  // Minimum frequency for analysis (below E2 is not interesting)
   const MIN_FREQ = 60
-  // Максимальная частота (выше ~1.5kHz гармоники менее полезны для аккордов)
+  // Maximum frequency (above ~1.5kHz harmonics are less useful for chords)
   const MAX_FREQ = 1500
 
-  // Порог активности pitch class (относительно максимума chromagram)
+  // Activation threshold for pitch class (relative to chromagram maximum)
   const ACTIVATION_THRESHOLD = 0.3
 
   /**
-   * Запускает анализ chromagram
+   * Starts chromagram analysis
    */
   const startAnalysis = (): void => {
     if (!analyserNode) {
-      console.warn('useChromaAnalyzer: AnalyserNode не предоставлен')
+      console.warn('useChromaAnalyzer: AnalyserNode not provided')
       return
     }
 
     isAnalyzing.value = true
     spectrumBuffer = new Uint8Array(analyserNode.frequencyBinCount)
     analyze()
-    console.log('Chromagram анализ запущен')
+    console.log('Chromagram analysis started')
   }
 
   /**
-   * Останавливает анализ
+   * Stops analysis
    */
   const stopAnalysis = (): void => {
     if (animationFrameId) {
@@ -57,7 +57,7 @@ export function useChromaAnalyzer(analyserNode: AnalyserNode | null): UseChromaA
   }
 
   /**
-   * Основной цикл анализа
+   * Main analysis loop
    */
   const analyze = (): void => {
     if (!analyserNode || !isAnalyzing.value) return
@@ -69,11 +69,11 @@ export function useChromaAnalyzer(analyserNode: AnalyserNode | null): UseChromaA
       const binCount = analyserNode.frequencyBinCount
       const binWidth = sampleRate / 2 / binCount
 
-      // Индексы для нужного диапазона частот
+      // Frequency range bin indices
       const minBin = Math.max(1, Math.floor(MIN_FREQ / binWidth))
       const maxBin = Math.min(binCount - 1, Math.ceil(MAX_FREQ / binWidth))
 
-      // Накопление энергии по pitch classes
+      // Accumulate energy by pitch classes
       const chroma = new Float32Array(12)
       const chromaCounts = new Float32Array(12)
 
@@ -81,24 +81,24 @@ export function useChromaAnalyzer(analyserNode: AnalyserNode | null): UseChromaA
         const freq = bin * binWidth
         if (freq < MIN_FREQ) continue
 
-        const amplitude = (spectrumBuffer[bin] ?? 0) / 255 // Нормализация 0-1
+        const amplitude = (spectrumBuffer[bin] ?? 0) / 255 // Normalize to 0-1
 
         // Pitch class: round(12 * log2(freq / C0)) % 12
         const pitchClass = Math.round(12 * Math.log2(freq / C0)) % 12
-        const pc = ((pitchClass % 12) + 12) % 12 // Нормализация в 0-11
+        const pc = ((pitchClass % 12) + 12) % 12 // Normalize to 0-11
 
-        chroma[pc]! += amplitude * amplitude // Энергия (квадрат амплитуды)
+        chroma[pc]! += amplitude * amplitude // Energy (amplitude squared)
         chromaCounts[pc]!++
       }
 
-      // Усредняем по количеству bins в каждом pitch class
+      // Average by bin count in each pitch class
       for (let i = 0; i < 12; i++) {
         if (chromaCounts[i]! > 0) {
           chroma[i]! /= chromaCounts[i]!
         }
       }
 
-      // Нормализация относительно максимума
+      // Normalize relative to maximum
       const maxVal = Math.max(...Array.from(chroma))
       if (maxVal > 0) {
         for (let i = 0; i < 12; i++) {
@@ -106,7 +106,7 @@ export function useChromaAnalyzer(analyserNode: AnalyserNode | null): UseChromaA
         }
       }
 
-      // Определяем активные pitch classes
+      // Determine active pitch classes
       const newActive = new Set<number>()
       for (let i = 0; i < 12; i++) {
         if ((chroma[i] ?? 0) >= ACTIVATION_THRESHOLD) {
@@ -114,7 +114,7 @@ export function useChromaAnalyzer(analyserNode: AnalyserNode | null): UseChromaA
         }
       }
 
-      // Обновляем реактивные значения
+      // Update reactive values
       chromagram.value = chroma
       activePitchClasses.value = newActive
     }

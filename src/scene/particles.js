@@ -9,7 +9,7 @@ const PARTICLE_BASE_SIZE = 0.38
 const STRING_LENGTH = 20
 
 /**
- * Создаёт систему частиц с предаллоцированным пулом
+ * Creates a particle system with pre-allocated pool
  * @param {THREE.Scene} scene
  * @param {number} maxParticles
  * @returns {object} particleData
@@ -90,7 +90,7 @@ export const createParticleSystem = (scene, maxParticles) => {
 }
 
 /**
- * Испускает одну частицу для указанной струны
+ * Emits a single particle for the specified string
  */
 export const emitParticle = (pd, strings, stringArrayIndex, intensity) => {
   const i = pd.nextIndex
@@ -127,7 +127,7 @@ export const emitParticle = (pd, strings, stringArrayIndex, intensity) => {
 }
 
 /**
- * Всплеск частиц при ударе по струне
+ * Burst of particles on string hit
  */
 export const emitBurst = (pd, strings, stringArrayIndex, intensity) => {
   const count = Math.round(BURST_COUNT * 0.5 + BURST_COUNT * 0.5 * intensity)
@@ -137,7 +137,7 @@ export const emitBurst = (pd, strings, stringArrayIndex, intensity) => {
 }
 
 /**
- * Постоянный поток частиц для активной струны
+ * Continuous stream of particles for active string
  */
 export const emitStream = (pd, strings, stringArrayIndex, intensity, dt) => {
   const rate = STREAM_RATE * intensity
@@ -150,7 +150,7 @@ export const emitStream = (pd, strings, stringArrayIndex, intensity, dt) => {
 }
 
 /**
- * Обновляет все живые частицы
+ * Updates all alive particles
  */
 export const updateParticles = (pd, dt) => {
   if (!pd || !pd.pAlive) return
@@ -190,7 +190,7 @@ export const updateParticles = (pd, dt) => {
 }
 
 /**
- * Удаляет систему частиц из сцены
+ * Removes particle system from scene
  */
 export const disposeParticles = (scene, pd) => {
   if (!pd) return
@@ -200,7 +200,7 @@ export const disposeParticles = (scene, pd) => {
 }
 
 /**
- * Пересоздаёт систему частиц с новым количеством
+ * Recreates particle system with new count
  */
 export const recreateParticles = (scene, pd, maxParticles) => {
   disposeParticles(scene, pd)

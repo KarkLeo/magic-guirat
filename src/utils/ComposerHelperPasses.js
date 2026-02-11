@@ -1,7 +1,7 @@
 /**
- * Вспомогательные passes для композитора:
- * - SaveFullSceneAndRenderStringsOnlyPass: сохраняет полный кадр и рендерит только струны (layer 1)
- * - CompositeFullSceneWithGhostPass: склеивает полный кадр + шлейф призраков (только от струн)
+ * Helper passes for composer:
+ * - SaveFullSceneAndRenderStringsOnlyPass: saves full frame and renders only strings (layer 1)
+ * - CompositeFullSceneWithGhostPass: combines full frame + ghost trails (only from strings)
  */
 
 import { Pass } from 'three/examples/jsm/postprocessing/Pass.js'
@@ -10,8 +10,8 @@ import * as THREE from 'three'
 const STRINGS_LAYER = 1
 
 /**
- * Копирует readBuffer в fullSceneRT, затем рендерит сцену только по layer STRINGS_LAYER в writeBuffer.
- * Так GhostTrailPass получает на вход только струны.
+ * Copies readBuffer to fullSceneRT, then renders scene only by layer STRINGS_LAYER into writeBuffer.
+ * This way GhostTrailPass receives only strings on input.
  */
 export class SaveFullSceneAndRenderStringsOnlyPass extends Pass {
   constructor(scene, camera, fullSceneRT) {
@@ -46,13 +46,13 @@ export class SaveFullSceneAndRenderStringsOnlyPass extends Pass {
   }
 
   render(renderer, writeBuffer, readBuffer) {
-    // 1) Сохраняем полный кадр в fullSceneRT
+    // 1) Save full frame to fullSceneRT
     this.copyMaterial.uniforms.tDiffuse.value = readBuffer.texture
     renderer.setRenderTarget(this.fullSceneRT)
     renderer.clear()
     renderer.render(this.quadScene, this.quadCamera)
 
-    // 2) Рендерим только струны (layer STRINGS_LAYER) в writeBuffer; фон — прозрачный чёрный
+    // 2) Render only strings (layer STRINGS_LAYER) to writeBuffer; background is transparent black
     const prevClearColor = renderer.getClearColor(new THREE.Color())
     const prevClearAlpha = renderer.getClearAlpha()
     renderer.setClearColor(0x000000, 0)
@@ -73,7 +73,7 @@ export class SaveFullSceneAndRenderStringsOnlyPass extends Pass {
 }
 
 /**
- * Композитинг: итог = полный кадр + призрачный шлейф (additive).
+ * Compositing: result = full frame + ghost trail (additive).
  */
 export class CompositeFullSceneWithGhostPass extends Pass {
   constructor(fullSceneRT) {
@@ -101,7 +101,7 @@ export class CompositeFullSceneWithGhostPass extends Pass {
         void main() {
           vec4 full = texture2D(tFullScene, vUv);
           vec4 ghost = texture2D(tGhost, vUv);
-          // Screen blend: нет пересвета, призрак мягко подсвечивает поверх сцены
+          // Screen blend: no overexposure, ghost softly highlights over scene
           vec3 rgb = 1.0 - (1.0 - full.rgb) * (1.0 - ghost.rgb);
           float a = max(full.a, ghost.a);
           gl_FragColor = vec4(rgb, a);

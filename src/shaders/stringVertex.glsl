@@ -1,70 +1,70 @@
-// Vertex Shader для волнообразной деформации струн гитары
+// Vertex Shader for wave-based string deformation of guitar strings
 // Sprint 5 Task 1: Enhanced String Physics with Harmonics
 
-// Uniforms - параметры, передаваемые из JavaScript
-uniform float uTime;           // Текущее время анимации (мс)
-uniform float uAmplitude;      // Амплитуда колебаний (0.0 - 1.0)
-uniform float uFrequency;      // Частота волны (зависит от ноты)
-uniform float uDamping;        // Коэффициент затухания (1.0 - 2.0)
-uniform float uAttackTime;     // Время начала колебания (мс)
-uniform float uSpeed;          // Скорость колебания (зависит от темпа)
+// Uniforms - parameters passed from JavaScript
+uniform float uTime;           // Current animation time (ms)
+uniform float uAmplitude;      // Oscillation amplitude (0.0 - 1.0)
+uniform float uFrequency;      // Wave frequency (depends on note)
+uniform float uDamping;        // Damping coefficient (1.0 - 2.0)
+uniform float uAttackTime;     // Oscillation start time (ms)
+uniform float uSpeed;          // Oscillation speed (depends on tempo)
 
-// Varying - передаём во fragment shader
-varying vec2 vUv;              // UV координаты для текстурирования
-varying float vIntensity;      // Интенсивность для затухания цвета
+// Varying - pass to fragment shader
+varying vec2 vUv;              // UV coordinates for texturing
+varying float vIntensity;      // Intensity for color decay
 
 void main() {
-  // Передаём UV координаты во fragment shader
+  // Pass UV coordinates to fragment shader
   vUv = uv;
 
-  // Копируем позицию вершины
+  // Copy vertex position
   vec3 pos = position;
 
-  // Вычисляем время с момента удара по струне (в секундах)
+  // Calculate time since string was struck (in seconds)
   float timeSinceAttack = max(0.0, (uTime - uAttackTime) * 0.001);
 
-  // === РЕАЛИСТИЧНАЯ МОДЕЛЬ КОЛЕБАНИЙ С ГАРМОНИКАМИ ===
-  // Реальная струна колеблется как суперпозиция нескольких частот (основная + обертоны)
-  // Волна распространяется ВДОЛЬ струны (pos.y — ось длины цилиндра)
+  // === REALISTIC OSCILLATION MODEL WITH HARMONICS ===
+  // A real string oscillates as a superposition of multiple frequencies (fundamental + overtones)
+  // The wave propagates ALONG the string (pos.y — cylinder length axis)
 
-  // Основная частота (фундаментальная)
+  // Fundamental frequency (first harmonic)
   float wave1 = sin(pos.y * uFrequency + uTime * 0.018 * uSpeed);
 
-  // Вторая гармоника (октава выше, меньшая амплитуда)
+  // Second harmonic (octave higher, smaller amplitude)
   float wave2 = sin(pos.y * uFrequency * 2.0 + uTime * 0.018 * uSpeed * 1.5) * 0.3;
 
-  // Третья гармоника (квинта, ещё меньшая амплитуда)
+  // Third harmonic (fifth, even smaller amplitude)
   float wave3 = sin(pos.y * uFrequency * 3.0 + uTime * 0.018 * uSpeed * 2.0) * 0.15;
 
-  // Суммируем все гармоники для богатого звука
+  // Sum all harmonics for rich sound
   float combinedWave = wave1 + wave2 + wave3;
 
-  // === ТРЁХФАЗНАЯ МОДЕЛЬ ENVELOPE (ATTACK → SUSTAIN → RELEASE) ===
+  // === THREE-PHASE ENVELOPE MODEL (ATTACK → SUSTAIN → RELEASE) ===
 
-  // Attack phase: быстрый рост (0 → 1 за ~50ms)
+  // Attack phase: rapid rise (0 → 1 over ~50ms)
   float attackDuration = 0.05;
   float attackPhase = smoothstep(0.0, attackDuration, timeSinceAttack);
 
-  // Sustain + Release phase: экспоненциальное затухание
-  // Для гитарных струн характерно медленное затухание (2-4 секунды)
+  // Sustain + Release phase: exponential decay
+  // Guitar strings are characterized by slow decay (2-4 seconds)
   float sustainDecay = exp(-uDamping * timeSinceAttack);
 
-  // Комбинированная envelope: attack * sustain
-  // Это даёт естественный профиль:
-  // - Быстрый рост в начале
-  // - Плавное затухание после пика
+  // Combined envelope: attack * sustain
+  // This gives a natural profile:
+  // - Rapid rise at the beginning
+  // - Smooth decay after peak
   float envelope = attackPhase * sustainDecay * uAmplitude;
 
-  // === ПРИМЕНЯЕМ ВОЛНУ К ГЕОМЕТРИИ ===
-  // Вертикальное смещение (перпендикулярно струне, в мировых координатах — вверх/вниз)
-  // Цилиндр: ось Y = длина, ось X/Z = радиус
-  // После rotation.z = 90°: локальная X → мировая Y (вертикаль) ✓
+  // === APPLY WAVE TO GEOMETRY ===
+  // Vertical displacement (perpendicular to string, in world coordinates — up/down)
+  // Cylinder: Y axis = length, X/Z axis = radius
+  // After rotation.z = 90°: local X → world Y (vertical) ✓
   pos.x += combinedWave * envelope;
 
-  // Передаём интенсивность для fragment shader (для свечения)
-  // Используем envelope для синхронизации свечения с колебаниями
+  // Pass intensity to fragment shader (for glow)
+  // Use envelope to synchronize glow with oscillations
   vIntensity = sustainDecay;
 
-  // Финальная трансформация позиции
+  // Final position transformation
   gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
 }
