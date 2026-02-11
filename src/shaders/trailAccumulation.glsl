@@ -1,16 +1,16 @@
 // Trail Accumulation Shader — Ghost Trails FBO Effect
 // Эффект клубящегося дыма с волновыми движениями в безветренном пространстве
 
-uniform sampler2D tDiffuse;     // Текущий кадр (струны)
-uniform sampler2D tPrevious;   // Предыдущий накопленный кадр
-uniform float uFadeSpeed;      // Скорость затухания (0.03 - 0.15)
-uniform float uOpacity;        // Общая прозрачность шлейфа (0.0 - 1.0)
-uniform vec2 uDriftOffset;     // Базовое смещение UV (обычно 0,0)
-uniform vec2 uResolution;      // Разрешение для blur
-uniform float uBlurAmount;    // Размытие (0.0 - 2.0)
-uniform float uTime;           // Время для анимации волн
+uniform sampler2D tDiffuse; // Текущий кадр (струны)
+uniform sampler2D tPrevious; // Предыдущий накопленный кадр
+uniform float uFadeSpeed; // Скорость затухания (0.03 - 0.15)
+uniform float uOpacity; // Общая прозрачность шлейфа (0.0 - 1.0)
+uniform vec2 uDriftOffset; // Базовое смещение UV (обычно 0,0)
+uniform vec2 uResolution; // Разрешение для blur
+uniform float uBlurAmount; // Размытие (0.0 - 2.0)
+uniform float uTime; // Время для анимации волн
 uniform float uSmokeIntensity; // Интенсивность волн (0.0 - 2.0)
-uniform float uTurbulence;     // Турбулентность дыма (0.0 - 1.0)
+uniform float uTurbulence; // Турбулентность дыма (0.0 - 1.0)
 
 varying vec2 vUv;
 
@@ -28,21 +28,20 @@ float fbm(vec2 p) {
 
 // Функция для создания волновых движений дыма
 vec2 smokeWave(vec2 uv, float time) {
-  // Основное движение вверх (как у дыма)
-  float upward = time * 0.1;
+  // Движение вверх должно быть константным для feedback loop,
+  // а не расти бесконечно от времени.
+  float upward = 0.002;
 
-  // Волновые колебания по горизонтали
-  float waveX = sin(uv.y * 8.0 + time * 2.0) * 0.02;
+  // Волновые колебания по горизонтали (используем sin для цикличности)
+  float waveX = sin(uv.y * 8.0 + time * 2.0) * 0.005;
 
-  // Клубящиеся движения (турбулентность)
-  float turbulenceX = fbm(vec2(uv.x * 3.0, uv.y * 2.0 + time)) * 0.015;
-  float turbulenceY = fbm(vec2(uv.x * 2.0, uv.y * 3.0 + time * 0.8)) * 0.01;
+  // Клубящиеся движения (турбулентность) — время здесь ок, так как шум цикличен или случаен
+  float turbulenceX = fbm(vec2(uv.x * 3.0, uv.y * 2.0 + time * 0.5)) * 0.008;
+  float turbulenceY = fbm(vec2(uv.x * 2.0, uv.y * 3.0 + time * 0.4)) * 0.005;
 
-  // Комбинируем все движения
-  return vec2(
-    waveX + turbulenceX,
-    upward + turbulenceY
-  );
+  // Комбинируем движения
+  // Чтобы дым шел ВВЕРХ, мы должны сэмплировать предыдущий кадр чуть НИЖЕ
+  return vec2(waveX + turbulenceX, -upward + turbulenceY);
 }
 
 // Лёгкий box blur 3x3
@@ -50,9 +49,15 @@ vec4 boxBlur(sampler2D tex, vec2 uv, vec2 pixelSize, float blurAmount) {
   vec4 result = vec4(0.0);
   float total = 0.0;
   float w[9];
-  w[0] = 1.0; w[1] = 2.0; w[2] = 1.0;
-  w[3] = 2.0; w[4] = 4.0; w[5] = 2.0;
-  w[6] = 1.0; w[7] = 2.0; w[8] = 1.0;
+  w[0] = 1.0;
+  w[1] = 2.0;
+  w[2] = 1.0;
+  w[3] = 2.0;
+  w[4] = 4.0;
+  w[5] = 2.0;
+  w[6] = 1.0;
+  w[7] = 2.0;
+  w[8] = 1.0;
   int idx = 0;
   for (int y = -1; y <= 1; y++) {
     for (int x = -1; x <= 1; x++) {

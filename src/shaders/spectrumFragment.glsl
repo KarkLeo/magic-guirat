@@ -8,34 +8,33 @@ uniform float uBoost;
 varying vec2 vUv;
 
 void main() {
-  // 3-stop градиент: pink (низ) → indigo (середина) → cyan (верх)
-  vec3 pink   = vec3(1.0, 0.0, 0.882);    // #FF00E1
-  vec3 indigo = vec3(0.216, 0.129, 0.871); // #3721DE
-  vec3 cyan   = vec3(0.0, 0.831, 1.0);    // #00D4FF
+  vec3 deepBlue = vec3(0.161, 0.024, 0.439);
+  vec3 brightCyan = vec3(0.62, 0.035, 0.871);
+  vec3 glowColor = vec3(0.89, 0.341, 0.043);
 
   vec3 color;
-  if (vUv.y < 0.5) {
-    color = mix(pink, indigo, vUv.y * 2.0);
-  } else {
-    color = mix(indigo, cyan, (vUv.y - 0.5) * 2.0);
-  }
+  // Смешиваем от глубокого синего к яркому морскому
+  color = mix(deepBlue, brightCyan, vUv.y);
 
   // Двойной fade для очень мягкого верхнего края:
-  // 1) Общий вертикальный градиент — плавное растворение вверх
-  float verticalFade = pow(1.0 - vUv.y, 0.9);
-  // 2) Edge softener — растянут на 60% высоты для максимально мягкой границы
+  // 1) Общий вертикальный градиент
+  float verticalFade = pow(1.0 - vUv.y, 1.1);
+  // 2) Edge softener
   float edgeSoft = smoothstep(1.0, 0.4, vUv.y);
   verticalFade *= edgeSoft;
 
   // Горизонтальный fade к краям
-  float horizontalFade = 1.0 - smoothstep(0.65, 1.0, abs(vUv.x - 0.5) * 2.0);
-  float shimmer = sin(uTime * 1.0 + vUv.x * 5.0) * 0.02 + 0.98;
+  float horizontalFade = 1.0 - smoothstep(0.6, 1.0, abs(vUv.x - 0.5) * 2.0);
 
-  float alpha = verticalFade * horizontalFade * shimmer * 0.7;
+  // Эффект вертикальных лучей (Aurora rays)
+  float rays = pow(sin(vUv.x * 30.0 + uTime * 0.5), 3.0) * 0.15;
+  float shimmer = sin(uTime * 1.2 + vUv.x * 8.0) * 0.05 + 0.95;
 
-  // Лёгкое розовое ядро внизу
-  float coreGlow = (1.0 - smoothstep(0.0, 0.15, vUv.y)) * 0.06;
-  color += coreGlow * pink * 0.5;
+  float alpha = verticalFade * horizontalFade * shimmer * 0.8;
+
+  // Мягкое свечение у основания (Aurora base glow)
+  float coreGlow = 1.0 - smoothstep(0.0, 0.2, vUv.y);
+  color += coreGlow * glowColor * 0.4 + rays * brightCyan * verticalFade;
 
   // Audio boost
   float boost = 1.0 + uBoost * 0.15;
