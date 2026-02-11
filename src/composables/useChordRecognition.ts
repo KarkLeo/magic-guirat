@@ -30,9 +30,14 @@ export function useChordRecognition(
   const mapPitchClassesToStrings = (pitchClasses: Set<number>): number[] => {
     const stringIndices: number[] = []
     for (const gs of GUITAR_STRINGS) {
-      const pc = noteNameToPitchClass(gs.note)
-      if (pitchClasses.has(pc)) {
-        stringIndices.push(gs.index)
+      const openPC = noteNameToPitchClass(gs.note)
+      for (const pc of pitchClasses) {
+        // Расстояние от открытой ноты до pitch class (вверх по ладам)
+        const dist = ((pc - openPC) % 12 + 12) % 12
+        if (dist <= 7) {
+          stringIndices.push(gs.index)
+          break
+        }
       }
     }
     return stringIndices
@@ -56,7 +61,7 @@ export function useChordRecognition(
       const chromagram = chromagramRef?.value || null
       const candidates = lookupChord(newPitchClasses, chromagram, 3)
 
-      if (candidates.length === 0 || (candidates[0]?.score ?? 0) < 0.3) {
+      if (candidates.length === 0 || (candidates[0]?.score ?? 0) < 0.45) {
         chordHistory.length = 0
         currentChord.value = null
         chordCandidates.value = []
@@ -66,6 +71,12 @@ export function useChordRecognition(
       }
 
       const bestCandidate = candidates[0]!
+
+      // Сброс стабилизации при смене аккорда — ускоряет отклик
+      const lastInHistory = chordHistory.length > 0 ? chordHistory[chordHistory.length - 1] : null
+      if (lastInHistory && lastInHistory !== bestCandidate.displayName) {
+        chordHistory.length = 0
+      }
 
       // Stabilization: add to history
       chordHistory.push(bestCandidate.displayName)

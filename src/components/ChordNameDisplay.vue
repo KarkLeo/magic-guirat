@@ -1,43 +1,38 @@
 <template>
   <div class="chord-display" :class="{ 'is-dimmed': !isActive && hasHistory }">
-    <!-- Active detection -->
-    <template v-if="isActive">
-      <transition name="chord-swap" mode="out-in">
-        <!-- Chord mode -->
-        <div v-if="detectionMode === 'chord' && chord" :key="chord?.displayName || 'chord'" class="chord-content">
-          <div class="chord-name">
-            <span class="chord-root">{{ chord?.rootName || '' }}</span>
-            <span class="chord-suffix">{{ chordSuffix }}</span>
-          </div>
-
-          <div class="confidence-bar">
-            <div class="confidence-fill" :style="{ width: confidencePercent + '%' }"></div>
-          </div>
-
-          <div v-if="candidates.length > 0" class="chord-alternatives">
-            <span v-for="(alt, i) in candidates" :key="i" class="chord-alt">
-              {{ alt.displayName }}
-            </span>
-          </div>
+    <transition name="chord-swap" mode="out-in">
+      <!-- Active detection - Chord mode -->
+      <div v-if="isActive && detectionMode === 'chord' && chord" :key="'active-chord-' + (chord?.displayName || 'chord')" class="chord-content">
+        <div class="chord-name">
+          <span class="chord-root">{{ chord?.rootName || '' }}</span>
+          <span class="chord-suffix">{{ chordSuffix }}</span>
         </div>
 
-        <!-- Single note mode -->
-        <div v-else-if="detectionMode === 'single' && detectedNote?.note" :key="detectedNote.note + detectedNote.octave" class="chord-content">
-          <div class="chord-name">
-            <span class="chord-root">{{ detectedNote.note }}</span>
-            <span class="chord-suffix note-octave">{{ detectedNote.octave }}</span>
-          </div>
-
-          <div class="confidence-bar">
-            <div class="confidence-fill" :style="{ width: Math.round(pitchConfidence * 100) + '%' }"></div>
-          </div>
+        <div class="confidence-bar">
+          <div class="confidence-fill" :style="{ width: confidencePercent + '%' }"></div>
         </div>
-      </transition>
-    </template>
 
-    <!-- Dimmed last detected (when not playing) -->
-    <template v-else-if="lastChord">
-      <div class="chord-content dimmed-content">
+        <div v-if="candidates.length > 0" class="chord-alternatives">
+          <span v-for="(alt, i) in candidates" :key="i" class="chord-alt">
+            {{ alt.displayName }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Active detection - Single note mode -->
+      <div v-else-if="isActive && detectionMode === 'single' && detectedNote?.note" :key="'active-note-' + detectedNote.note + detectedNote.octave" class="chord-content">
+        <div class="chord-name">
+          <span class="chord-root">{{ detectedNote.note }}</span>
+          <span class="chord-suffix note-octave">{{ detectedNote.octave }}</span>
+        </div>
+
+        <div class="confidence-bar">
+          <div class="confidence-fill" :style="{ width: Math.round(pitchConfidence * 100) + '%' }"></div>
+        </div>
+      </div>
+
+      <!-- Dimmed last detected (when not playing) -->
+      <div v-else-if="lastChord" :key="'dimmed-' + (lastChord.displayName || 'last')" class="chord-content dimmed-content">
         <div class="chord-name">
           <span class="chord-root">{{ lastChordRoot }}</span>
           <span class="chord-suffix" :class="{ 'note-octave': lastChord.mode === 'single' }">{{ lastChordSuffix }}</span>
@@ -46,11 +41,9 @@
           <div class="confidence-fill dimmed-fill" style="width: 0%"></div>
         </div>
       </div>
-    </template>
 
-    <!-- Placeholder when nothing played yet -->
-    <template v-else>
-      <div class="chord-content placeholder-content">
+      <!-- Placeholder when nothing played yet -->
+      <div v-else :key="'placeholder'" class="chord-content placeholder-content">
         <div class="chord-name">
           <span class="chord-root placeholder-text">— —</span>
         </div>
@@ -58,8 +51,7 @@
           <div class="confidence-fill" style="width: 0%"></div>
         </div>
       </div>
-    </template>
-
+    </transition>
   </div>
 </template>
 
@@ -254,22 +246,30 @@ const confidencePercent = computed(() => {
 }
 
 .chord-swap-leave-active {
-  transition: all 0.6s cubic-bezier(0.4, 0, 0.6, 1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.6, 1);
+  position: absolute;
 }
 
 .chord-swap-enter-from {
   opacity: 0;
-  transform: scale(0.7) translateY(12px);
+  transform: scale(0.85);
   filter: drop-shadow(0 0 0 rgba(192, 132, 252, 0));
 }
 
 .chord-swap-enter-to {
-  filter: drop-shadow(0 0 30px rgba(192, 132, 252, 0.8));
+  opacity: 1;
+  transform: scale(1);
+  filter: drop-shadow(0 2px 8px rgba(192, 132, 252, 0.5));
+}
+
+.chord-swap-leave-from {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .chord-swap-leave-to {
   opacity: 0;
-  transform: scale(0.9) translateY(-6px);
+  transform: scale(0.9);
   filter: drop-shadow(0 0 0 rgba(192, 132, 252, 0));
 }
 

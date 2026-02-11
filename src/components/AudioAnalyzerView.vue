@@ -110,13 +110,23 @@ const detectedNote = computed(() => {
 // Confidence from YIN algorithm
 const pitchConfidence = computed(() => frequencyAnalyzer.value?.pitchConfidence.value || 0)
 
-// Detection mode: 'chord' or 'single'
-const detectionMode = computed(() => {
-  if (isChordDetected.value && detectedStrings.value.length >= 2) {
-    return 'chord'
+// Detection mode: 'chord' or 'single' (с гистерезисом для предотвращения мерцания)
+const detectionMode = ref('single')
+const chordExitCounter = ref(0)
+const CHORD_EXIT_FRAMES = 3
+
+watch([isChordDetected, detectedStrings], ([chordDetected, strings]) => {
+  if (chordDetected && strings.length >= 2) {
+    detectionMode.value = 'chord'
+    chordExitCounter.value = CHORD_EXIT_FRAMES
+  } else {
+    if (chordExitCounter.value > 0) {
+      chordExitCounter.value--
+    } else {
+      detectionMode.value = 'single'
+    }
   }
-  return 'single'
-})
+}, { flush: 'sync' })
 
 // Determine active string for single mode
 const singleActiveStringIndex = computed(() => {
